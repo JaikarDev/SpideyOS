@@ -7,16 +7,16 @@ import android.service.notification.StatusBarNotification
 import androidx.core.app.NotificationCompat
 import com.jaikar.spideyos.R
 import com.jaikar.spideyos.SpideyApp
-import com.jaikar.spideyos.assistant.GeminiClient
+import com.jaikar.spideyos.assistant.PupBrain
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
+/** Pip watches allowed notifications on-device — no cloud AI. */
 class SpideyNotificationListener : NotificationListenerService() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    private val gemini = GeminiClient { "" }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         if (sbn == null) return
@@ -30,23 +30,23 @@ class SpideyNotificationListener : NotificationListenerService() {
             val text = extras?.getCharSequence("android.text")?.toString().orEmpty()
             val pkg = sbn.packageName.orEmpty()
 
-            val spideyText = when {
+            val pipText = when {
                 isMailPackage(pkg) || title.contains("mail", true) || text.contains("mail", true) ->
-                    gemini.announceMail(settings.userName)
+                    PupBrain.announceMail(settings.userName)
                 isMessagePackage(pkg) ->
-                    gemini.announceMessage(settings.userName, title.ifBlank { null })
+                    PupBrain.announceMessage(settings.userName, title.ifBlank { null })
                 else -> null
             } ?: return@launch
 
-            postSpideyAlert(spideyText, "Original: $title — $text")
+            postPipAlert(pipText, "From your phone · tracked locally by Pip")
         }
     }
 
-    private fun postSpideyAlert(title: String, body: String) {
-        val channelId = "spidey_voice"
+    private fun postPipAlert(title: String, body: String) {
+        val channelId = "pip_watch"
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         nm.createNotificationChannel(
-            NotificationChannel(channelId, "Spidey Voice", NotificationManager.IMPORTANCE_DEFAULT),
+            NotificationChannel(channelId, "Pip Watch", NotificationManager.IMPORTANCE_DEFAULT),
         )
         val notif = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(R.drawable.ic_launcher_legacy)

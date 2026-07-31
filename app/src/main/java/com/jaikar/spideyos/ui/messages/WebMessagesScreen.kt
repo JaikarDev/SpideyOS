@@ -15,12 +15,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.GenericShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Pets
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -31,34 +37,49 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.jaikar.spideyos.assistant.PupBrain
 import com.jaikar.spideyos.data.SpideySettings
+import com.jaikar.spideyos.ui.adaptive.AdaptiveContent
 import com.jaikar.spideyos.ui.theme.SpideyGold
 import com.jaikar.spideyos.ui.theme.SpideyNavy
 import com.jaikar.spideyos.ui.theme.SpideyRed
 import com.jaikar.spideyos.ui.theme.SpideyWeb
 import com.jaikar.spideyos.ui.theme.WebBackground
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import kotlin.math.cos
+import kotlin.math.sin
 
-data class WebMessage(val fromMe: Boolean, val body: String, val animateWeb: Boolean = false)
+data class ThreadMessage(
+    val id: Long = System.currentTimeMillis(),
+    val fromMe: Boolean,
+    val body: String,
+    val time: String = SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date()),
+    val animateWeb: Boolean = false,
+    val reaction: String? = null,
+    val isPip: Boolean = false,
+)
 
-private val WebBubbleShape = GenericShape { size, _ ->
+private val WeaveBubbleShape = GenericShape { size, _ ->
     val w = size.width
     val h = size.height
     moveTo(16f, 0f)
     lineTo(w - 16f, 0f)
     quadraticBezierTo(w, 0f, w, 16f)
-    lineTo(w, h - 24f)
-    quadraticBezierTo(w, h, w - 28f, h)
-    lineTo(w * 0.55f, h)
-    lineTo(w * 0.48f, h + 10f)
-    lineTo(w * 0.42f, h)
+    lineTo(w, h - 20f)
+    quadraticBezierTo(w, h, w - 24f, h)
     lineTo(16f, h)
     quadraticBezierTo(0f, h, 0f, h - 16f)
     lineTo(0f, 16f)
@@ -73,109 +94,169 @@ fun WebMessagesScreen(
 ) {
     val messages = remember {
         mutableStateListOf(
-            WebMessage(false, "Hey ${settings.userName}! Messages land like webs here."),
-            WebMessage(true, "SpideyOS looking sharp."),
-            WebMessage(false, "Want me to announce new chats in Spidey voice? Enable Notification Access."),
+            ThreadMessage(fromMe = false, body = "Hey ${settings.userName}! Welcome to ThreadBox — soft weave bubbles."),
+            ThreadMessage(fromMe = true, body = "This looks rich already."),
+            ThreadMessage(
+                fromMe = false,
+                body = "I'll sit in the thread like a loyal pup and react when you send.",
+                isPip = true,
+                reaction = "wag",
+            ),
         )
     }
     var input by remember { mutableStateOf("") }
+    var pipTyping by remember { mutableStateOf(false) }
     val webProgress = remember { Animatable(0f) }
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) listState.animateScrollToItem(messages.lastIndex)
         val last = messages.lastOrNull()
         if (last?.animateWeb == true && last.fromMe) {
             webProgress.snapTo(0f)
-            webProgress.animateTo(1f, tween(550, easing = LinearOutSlowInEasing))
+            webProgress.animateTo(1f, tween(600, easing = LinearOutSlowInEasing))
         }
     }
 
     Box(Modifier.fillMaxSize()) {
-        WebBackground(intensity = settings.themeIntensity * 0.9f)
-        Column(Modifier.fillMaxSize().padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = SpideyWeb)
-                }
-                Column {
-                    Text("Web Messages", color = SpideyWeb, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                    Text("Spider-web bubbles · send-line animation", color = SpideyGold, fontSize = 12.sp)
-                }
-            }
-            Box(Modifier.weight(1f).fillMaxWidth()) {
-                Canvas(Modifier.fillMaxSize()) {
-                    val p = webProgress.value
-                    if (p > 0f) {
-                        val start = Offset(size.width * 0.85f, size.height - 8f)
-                        val end = Offset(size.width * 0.55f, size.height * (1f - 0.35f * p))
-                        drawLine(
-                            SpideyWeb.copy(alpha = 0.55f),
-                            start,
-                            Offset(
-                                start.x + (end.x - start.x) * p,
-                                start.y + (end.y - start.y) * p,
-                            ),
-                            strokeWidth = 3f,
-                        )
-                        // tiny web burst
-                        val cx = start.x + (end.x - start.x) * p
-                        val cy = start.y + (end.y - start.y) * p
-                        val r = 18f * p
-                        for (i in 0 until 6) {
-                            val a = Math.PI * 2 * i / 6
-                            drawLine(
-                                SpideyGold.copy(alpha = 0.7f),
-                                Offset(cx, cy),
-                                Offset(cx + r * kotlin.math.cos(a).toFloat(), cy + r * kotlin.math.sin(a).toFloat()),
-                                strokeWidth = 2f,
-                            )
-                        }
+        WebBackground(intensity = settings.themeIntensity * 0.95f)
+        AdaptiveContent {
+            Column(Modifier.fillMaxSize()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = SpideyWeb)
+                    }
+                    Column(Modifier.weight(1f)) {
+                        Text("ThreadBox", color = SpideyWeb, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        Text("Rich weave chat · Pip reacts live", color = SpideyGold, fontSize = 12.sp)
+                    }
+                    Box(
+                        Modifier
+                            .size(40.dp)
+                            .background(SpideyRed.copy(alpha = 0.85f), CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(Icons.Default.Pets, null, tint = SpideyWeb, modifier = Modifier.size(22.dp))
                     }
                 }
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
-                    contentPadding = PaddingValues(vertical = 12.dp),
-                ) {
-                    items(messages) { msg ->
-                        val align = if (msg.fromMe) Alignment.CenterEnd else Alignment.CenterStart
-                        Box(Modifier.fillMaxWidth(), contentAlignment = align) {
-                            Box(
-                                Modifier
-                                    .fillMaxWidth(0.78f)
-                                    .background(
-                                        if (msg.fromMe) SpideyRed.copy(alpha = 0.9f) else SpideyNavy.copy(alpha = 0.92f),
-                                        WebBubbleShape,
-                                    )
-                                    .padding(horizontal = 14.dp, vertical = 12.dp),
+
+                Box(Modifier.weight(1f).fillMaxWidth()) {
+                    Canvas(Modifier.fillMaxSize()) {
+                        val p = webProgress.value
+                        if (p > 0f && p < 1f) {
+                            val start = Offset(size.width * 0.88f, size.height - 12f)
+                            val end = Offset(size.width * 0.55f, size.height * (1f - 0.4f * p))
+                            val x = start.x + (end.x - start.x) * p
+                            val y = start.y + (end.y - start.y) * p
+                            drawLine(SpideyWeb.copy(alpha = 0.55f), start, Offset(x, y), strokeWidth = 3.5f)
+                            val r = 20f * p
+                            for (i in 0 until 8) {
+                                val a = Math.PI * 2 * i / 8
+                                drawLine(
+                                    SpideyGold.copy(alpha = 0.75f),
+                                    Offset(x, y),
+                                    Offset(x + r * cos(a).toFloat(), y + r * sin(a).toFloat()),
+                                    strokeWidth = 2f,
+                                )
+                            }
+                        }
+                    }
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(vertical = 12.dp),
+                    ) {
+                        items(messages, key = { it.id }) { msg ->
+                            val align = if (msg.fromMe) Alignment.CenterEnd else Alignment.CenterStart
+                            Column(
+                                Modifier.fillMaxWidth(),
+                                horizontalAlignment = if (msg.fromMe) Alignment.End else Alignment.Start,
                             ) {
-                                // decorative mini web lines inside bubble
-                                Canvas(Modifier.fillMaxWidth().height(0.dp)) { }
-                                Text(msg.body, color = SpideyWeb)
+                                if (msg.isPip) {
+                                    Text("Pip", color = SpideyGold, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                }
+                                Box(Modifier.fillMaxWidth(), contentAlignment = align) {
+                                    Column(
+                                        Modifier
+                                            .fillMaxWidth(0.82f)
+                                            .background(
+                                                when {
+                                                    msg.isPip -> SpideyGold.copy(alpha = 0.18f)
+                                                    msg.fromMe -> SpideyRed.copy(alpha = 0.9f)
+                                                    else -> SpideyNavy.copy(alpha = 0.92f)
+                                                },
+                                                WeaveBubbleShape,
+                                            )
+                                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                                    ) {
+                                        Text(msg.body, color = SpideyWeb, fontSize = 14.sp)
+                                        Spacer(Modifier.height(4.dp))
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            modifier = Modifier.fillMaxWidth(),
+                                        ) {
+                                            Text(msg.time, color = SpideyWeb.copy(alpha = 0.55f), fontSize = 10.sp)
+                                            msg.reaction?.let {
+                                                Icon(
+                                                    Icons.Default.Favorite,
+                                                    null,
+                                                    tint = SpideyGold,
+                                                    modifier = Modifier.size(14.dp),
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if (pipTyping) {
+                            item {
+                                Text(
+                                    "Pip is weaving a reply…",
+                                    color = SpideyGold,
+                                    fontSize = 12.sp,
+                                    modifier = Modifier
+                                        .background(SpideyNavy, RoundedCornerShape(10.dp))
+                                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                                )
                             }
                         }
                     }
                 }
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                OutlinedTextField(
-                    value = input,
-                    onValueChange = { input = it },
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("Shoot a web-message…") },
-                    singleLine = true,
-                )
-                IconButton(
-                    enabled = input.isNotBlank(),
-                    onClick = {
-                        messages += WebMessage(true, input.trim(), animateWeb = true)
-                        input = ""
-                        messages += WebMessage(
-                            false,
-                            "Spidey here — ${settings.userName}, message sent across the web!",
-                        )
-                    },
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.Send, null, tint = SpideyGold)
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedTextField(
+                        value = input,
+                        onValueChange = { input = it },
+                        modifier = Modifier.weight(1f),
+                        placeholder = { Text("Write a rich thread…") },
+                        singleLine = true,
+                    )
+                    IconButton(
+                        enabled = input.isNotBlank() && !pipTyping,
+                        onClick = {
+                            val text = input.trim()
+                            input = ""
+                            messages += ThreadMessage(fromMe = true, body = text, animateWeb = true)
+                            scope.launch {
+                                pipTyping = true
+                                delay(700)
+                                val reply = PupBrain.chat(settings.userName, text)
+                                messages += ThreadMessage(
+                                    fromMe = false,
+                                    body = reply,
+                                    isPip = true,
+                                    reaction = "wag",
+                                )
+                                pipTyping = false
+                            }
+                        },
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.Send, null, tint = SpideyGold)
+                    }
                 }
             }
         }

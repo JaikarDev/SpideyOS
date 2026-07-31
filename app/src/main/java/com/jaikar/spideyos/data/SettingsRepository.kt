@@ -6,11 +6,10 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.jaikar.spideyos.BuildConfig
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-private val Context.dataStore by preferencesDataStore("spidey_settings")
+private val Context.dataStore by preferencesDataStore("weavehome_settings")
 
 data class SpideySettings(
     val userName: String = "Jaikar",
@@ -21,9 +20,6 @@ data class SpideySettings(
     val mailEnabled: Boolean = true,
     val cameraEnabled: Boolean = true,
     val spideyVoiceEnabled: Boolean = true,
-    val imapHost: String = "imap.gmail.com",
-    val imapEmail: String = "",
-    val imapPassword: String = "",
 )
 
 class SettingsRepository(private val context: Context) {
@@ -35,25 +31,19 @@ class SettingsRepository(private val context: Context) {
         val MESSAGES = booleanPreferencesKey("messages_enabled")
         val MAIL = booleanPreferencesKey("mail_enabled")
         val CAMERA = booleanPreferencesKey("camera_enabled")
-        val VOICE = booleanPreferencesKey("spidey_voice_enabled")
-        val IMAP_HOST = stringPreferencesKey("imap_host")
-        val IMAP_EMAIL = stringPreferencesKey("imap_email")
-        val IMAP_PASS = stringPreferencesKey("imap_pass")
+        val VOICE = booleanPreferencesKey("pip_watch_enabled")
     }
 
     val settings: Flow<SpideySettings> = context.dataStore.data.map { p ->
         SpideySettings(
             userName = p[Keys.USER_NAME] ?: "Jaikar",
-            geminiApiKey = p[Keys.GEMINI_KEY] ?: BuildConfig.GEMINI_API_KEY,
+            geminiApiKey = p[Keys.GEMINI_KEY] ?: "",
             themeIntensity = p[Keys.THEME] ?: 0.85f,
             onboardingDone = p[Keys.ONBOARDING] ?: false,
             messagesEnabled = p[Keys.MESSAGES] ?: true,
             mailEnabled = p[Keys.MAIL] ?: true,
             cameraEnabled = p[Keys.CAMERA] ?: true,
             spideyVoiceEnabled = p[Keys.VOICE] ?: true,
-            imapHost = p[Keys.IMAP_HOST] ?: "imap.gmail.com",
-            imapEmail = p[Keys.IMAP_EMAIL] ?: "",
-            imapPassword = p[Keys.IMAP_PASS] ?: "",
         )
     }
 
@@ -87,13 +77,5 @@ class SettingsRepository(private val context: Context) {
 
     suspend fun setSpideyVoiceEnabled(enabled: Boolean) {
         context.dataStore.edit { it[Keys.VOICE] = enabled }
-    }
-
-    suspend fun setImap(host: String, email: String, password: String) {
-        context.dataStore.edit {
-            it[Keys.IMAP_HOST] = host.trim().ifBlank { "imap.gmail.com" }
-            it[Keys.IMAP_EMAIL] = email.trim()
-            it[Keys.IMAP_PASS] = password
-        }
     }
 }

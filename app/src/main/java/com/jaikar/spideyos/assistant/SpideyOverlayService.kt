@@ -37,7 +37,7 @@ class SpideyOverlayService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        val notification = buildNotification()
+        val notification = buildNotification("Pip companion overlay active")
         if (Build.VERSION.SDK_INT >= 34) {
             ServiceCompat.startForeground(
                 this,
@@ -97,11 +97,11 @@ class SpideyOverlayService : Service() {
         scope.launch {
             val name = SpideyApp.instance.settings.settings.first().userName
             val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-            nm.notify(NOTIF_ID, buildNotification("Hey $name — Spidey is on watch."))
+            nm.notify(NOTIF_ID, buildNotification("Hey $name — Pip is on watch."))
         }
     }
 
-    private fun buildNotification(content: String = "Spidey assistant overlay active"): Notification {
+    private fun buildNotification(content: String = "Pip companion overlay active"): Notification {
         val channelId = "spidey_overlay"
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         nm.createNotificationChannel(
@@ -118,7 +118,7 @@ class SpideyOverlayService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         return NotificationCompat.Builder(this, channelId)
-            .setContentTitle("SpideyOS")
+            .setContentTitle("WeaveHome")
             .setContentText(content)
             .setSmallIcon(R.drawable.ic_launcher_legacy)
             .setContentIntent(pi)

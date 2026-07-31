@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="spidey_red">#C41E3A</color>
-    <color name="spidey_blue">#0B1D36</color>
-    <color name="spidey_navy">#102A43</color>
-    <color name="spidey_web">#E8EEF5</color>
+    <color name="spidey_red">#3DBE8B</color>
+    <color name="spidey_blue">#0F2A32</color>
+    <color name="spidey_navy">#16353F</color>
+    <color name="spidey_web">#E8F6F0</color>
     <color name="spidey_gold">#F4C430</color>
-    <color name="ic_launcher_background">#C41E3A</color>
+    <color name="ic_launcher_background">#0F2A32</color>
+    <color name="pip_mint">#3DBE8B</color>
+    <color name="pip_deep">#0F2A32</color>
 </resources>

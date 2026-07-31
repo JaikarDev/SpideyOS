@@ -1,30 +1,20 @@
-import java.util.Properties
-
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
-val localProps = Properties().apply {
-    val f = rootProject.file("local.properties")
-    if (f.exists()) f.inputStream().use { load(it) }
-}
-val geminiKey: String = localProps.getProperty("GEMINI_API_KEY", "")
-
 android {
     namespace = "com.jaikar.spideyos"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.jaikar.spideyos"
-        // Android 8+ so Samsung / Xiaomi / Oppo / Vivo / Realme / Redmi / Poco / OnePlus / Lava devices can install
+        applicationId = "com.jaikar.weavehome"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = 4
+        versionName = "2.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
     }
 
     buildTypes {
@@ -33,7 +23,7 @@ android {
             isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
         }
         debug {
@@ -78,6 +68,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
+    implementation("androidx.compose.material3:material3-window-size-class")
     implementation("androidx.navigation:navigation-compose:2.8.4")
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
@@ -91,11 +82,6 @@ dependencies {
     implementation("androidx.camera:camera-view:$camerax")
 
     implementation("androidx.profileinstaller:profileinstaller:1.4.1")
-    implementation("androidx.compose.material3:material3-window-size-class")
-
-    // IMAP for Mail Digest (Gmail app password / any IMAP host)
-    implementation("com.sun.mail:android-mail:1.6.7")
-    implementation("com.sun.mail:android-activation:1.6.7")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")

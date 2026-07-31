@@ -5,16 +5,17 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-val SpideyRed = Color(0xFFC41E3A)
-val SpideyBlue = Color(0xFF0B1D36)
-val SpideyNavy = Color(0xFF102A43)
-val SpideyWeb = Color(0xFFE8EEF5)
+val SpideyRed = Color(0xFF3DBE8B) // mint accent (legacy name kept for fewer file renames)
+val SpideyBlue = Color(0xFF0F2A32)
+val SpideyNavy = Color(0xFF16353F)
+val SpideyWeb = Color(0xFFE8F6F0)
 val SpideyGold = Color(0xFFF4C430)
-val SpideyBlueLight = Color(0xFF1F3A5F)
+val SpideyBlueLight = Color(0xFF24505C)
+val PipMint = SpideyRed
 
-private val SpideyDarkColors = darkColorScheme(
-    primary = SpideyRed,
-    onPrimary = SpideyWeb,
+private val WeaveColors = darkColorScheme(
+    primary = PipMint,
+    onPrimary = SpideyBlue,
     secondary = SpideyGold,
     onSecondary = SpideyBlue,
     background = SpideyBlue,
@@ -27,7 +28,7 @@ private val SpideyDarkColors = darkColorScheme(
 @Composable
 fun SpideyOSTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = SpideyDarkColors,
+        colorScheme = WeaveColors,
         content = content,
     )
 }

@@ -8,7 +8,7 @@ import android.content.Intent
 import androidx.core.app.NotificationCompat
 import com.jaikar.spideyos.R
 import com.jaikar.spideyos.SpideyApp
-import com.jaikar.spideyos.assistant.GeminiClient
+import com.jaikar.spideyos.assistant.PupBrain
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -24,10 +24,10 @@ data class MailItem(
 
 object MailDigestStore {
     val demoInbox = listOf(
-        MailItem("Daily Bugle", "Exclusive: Web-slinger spotted", "Editors want photos by noon."),
-        MailItem("Aunt May", "Dinner Sunday?", "I made your favorite — don’t be late."),
-        MailItem("Oscorp HR", "Internship update", "Please review the attached offer."),
-        MailItem("Campus Lab", "Spectrometer results", "Raw data ready for your report."),
+        MailItem("Nest School", "Schedule update", "Tomorrow's lab starts at 10."),
+        MailItem("Family Circle", "Sunday dinner?", "Come by if you're free."),
+        MailItem("Campus Desk", "Form ready", "Your request was approved."),
+        MailItem("Local Club", "Weekend meetup", "Bring a notebook and good shoes."),
     )
 
     fun scheduleDemoPing(context: Context, delayMs: Long = 3_000L) {
@@ -42,18 +42,18 @@ object MailDigestStore {
         CoroutineScope(Dispatchers.Default).launch {
             val settings = SpideyApp.instance.settings.settings.first()
             if (!settings.mailEnabled || !settings.spideyVoiceEnabled) return@launch
-            val title = GeminiClient { "" }.announceMail(settings.userName)
+            val title = PupBrain.announceMail(settings.userName)
             val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            val channelId = "spidey_mail"
+            val channelId = "pip_mail"
             nm.createNotificationChannel(
-                NotificationChannel(channelId, "Spidey Mail", NotificationManager.IMPORTANCE_DEFAULT),
+                NotificationChannel(channelId, "Pip Mail", NotificationManager.IMPORTANCE_DEFAULT),
             )
             nm.notify(
                 1901,
                 NotificationCompat.Builder(context, channelId)
                     .setSmallIcon(R.drawable.ic_launcher_legacy)
                     .setContentTitle(title)
-                    .setContentText("Open Mail Digest for the short version, ${settings.userName}.")
+                    .setContentText("Open Inbox Pulse for the short version, ${settings.userName}.")
                     .setAutoCancel(true)
                     .build(),
             )

@@ -50,7 +50,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.jaikar.spideyos.assistant.GeminiClient
+import com.jaikar.spideyos.assistant.PupBrain
 import com.jaikar.spideyos.data.SpideySettings
 import com.jaikar.spideyos.ui.theme.SpideyGold
 import com.jaikar.spideyos.ui.theme.SpideyNavy
@@ -60,7 +60,7 @@ import java.io.File
 import java.util.concurrent.Executors
 
 @Composable
-fun PeterCameraScreen(
+fun SnapBoothScreen(
     settings: SpideySettings,
     onBack: () -> Unit,
 ) {
@@ -75,7 +75,6 @@ fun PeterCameraScreen(
     var reaction by remember { mutableStateOf<String?>(null) }
     val imageCapture = remember { ImageCapture.Builder().build() }
     val executor = remember { Executors.newSingleThreadExecutor() }
-
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted -> hasCam = granted }
@@ -86,17 +85,15 @@ fun PeterCameraScreen(
 
     Column(Modifier.fillMaxSize().background(SpideyNavy)) {
         Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
+            Modifier.fillMaxWidth().padding(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = onBack) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = SpideyWeb)
             }
             Column {
-                Text("Peter Camera", color = SpideyWeb, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                Text("Daily Bugle mode · CameraX", color = SpideyGold, fontSize = 12.sp)
+                Text("SnapBooth", color = SpideyWeb, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                Text("Original camera frame · Pip reacts locally", color = SpideyGold, fontSize = 12.sp)
             }
         }
 
@@ -138,7 +135,6 @@ fun PeterCameraScreen(
                     },
                     modifier = Modifier.fillMaxSize(),
                 )
-                // Comic frame overlay
                 Canvas(Modifier.fillMaxSize()) {
                     val stroke = Stroke(width = 6f)
                     val inset = 24f
@@ -149,13 +145,9 @@ fun PeterCameraScreen(
                         cornerRadius = CornerRadius(28f, 28f),
                         style = stroke,
                     )
-                    // web corners
-                    val web = SpideyWeb.copy(alpha = 0.45f)
-                    drawLine(web, Offset(inset, inset + 40f), Offset(inset + 40f, inset), 3f)
-                    drawLine(web, Offset(size.width - inset, inset + 40f), Offset(size.width - inset - 40f, inset), 3f)
                 }
                 Text(
-                    "PETER PARKER — FIELD UNIT",
+                    "SNAPBOOTH · FIELD UNIT",
                     color = SpideyGold,
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp,
@@ -183,15 +175,14 @@ fun PeterCameraScreen(
             Box(Modifier.fillMaxWidth().padding(bottom = 24.dp), contentAlignment = Alignment.Center) {
                 Button(
                     onClick = {
-                        val file = File(context.cacheDir, "peter_${System.currentTimeMillis()}.jpg")
+                        val file = File(context.cacheDir, "snap_${System.currentTimeMillis()}.jpg")
                         val output = ImageCapture.OutputFileOptions.Builder(file).build()
                         imageCapture.takePicture(
                             output,
                             executor,
                             object : ImageCapture.OnImageSavedCallback {
                                 override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-                                    val line = GeminiClient { settings.geminiApiKey }
-                                        .reactToPhoto(settings.userName)
+                                    val line = PupBrain.reactToPhoto(settings.userName)
                                     ContextCompat.getMainExecutor(context).execute {
                                         reaction = line
                                         Toast.makeText(context, line, Toast.LENGTH_SHORT).show()
@@ -209,7 +200,7 @@ fun PeterCameraScreen(
                     shape = CircleShape,
                     modifier = Modifier.size(72.dp),
                 ) {
-                    Text("WEB", fontWeight = FontWeight.Bold)
+                    Text("SNAP", fontWeight = FontWeight.Bold)
                 }
             }
         }

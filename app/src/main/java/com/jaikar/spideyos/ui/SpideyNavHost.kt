@@ -9,7 +9,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.jaikar.spideyos.SpideyApp
 import com.jaikar.spideyos.ui.assistant.AssistantScreen
-import com.jaikar.spideyos.ui.camera.PeterCameraScreen
+import com.jaikar.spideyos.ui.camera.SnapBoothScreen
 import com.jaikar.spideyos.ui.launcher.LauncherScreen
 import com.jaikar.spideyos.ui.mail.MailDigestScreen
 import com.jaikar.spideyos.ui.messages.WebMessagesScreen
@@ -54,7 +54,13 @@ fun SpideyNavHost() {
             )
         }
         composable(Routes.ASSISTANT) {
-            AssistantScreen(settings = settings, onBack = { nav.popBackStack() })
+            AssistantScreen(
+                settings = settings,
+                onBack = { nav.popBackStack() },
+                onOpenMail = { nav.navigate(Routes.MAIL) },
+                onOpenMessages = { nav.navigate(Routes.MESSAGES) },
+                onOpenCamera = { nav.navigate(Routes.CAMERA) },
+            )
         }
         composable(Routes.MESSAGES) {
             WebMessagesScreen(settings = settings, onBack = { nav.popBackStack() })
@@ -63,7 +69,7 @@ fun SpideyNavHost() {
             MailDigestScreen(settings = settings, onBack = { nav.popBackStack() })
         }
         composable(Routes.CAMERA) {
-            PeterCameraScreen(settings = settings, onBack = { nav.popBackStack() })
+            SnapBoothScreen(settings = settings, onBack = { nav.popBackStack() })
         }
         composable(Routes.SETTINGS) {
             SettingsScreen(settings = settings, onBack = { nav.popBackStack() })
