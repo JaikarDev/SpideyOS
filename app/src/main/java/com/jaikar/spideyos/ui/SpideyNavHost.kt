@@ -1,6 +1,7 @@
 package com.jaikar.spideyos.ui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
@@ -33,7 +34,10 @@ object Routes {
 }
 
 @Composable
-fun SpideyNavHost() {
+fun SpideyNavHost(
+    deepLinkRoute: String? = null,
+    onDeepLinkConsumed: () -> Unit = {},
+) {
     val context = LocalContext.current
     val settingsRepo = (context.applicationContext as SpideyApp).settings
     val settings by settingsRepo.settings.collectAsState(
@@ -41,6 +45,29 @@ fun SpideyNavHost() {
     )
     val nav = rememberNavController()
     val start = if (settings.onboardingDone) Routes.SPLASH else Routes.ONBOARDING
+
+    LaunchedEffect(deepLinkRoute, settings.onboardingDone) {
+        val route = deepLinkRoute ?: return@LaunchedEffect
+        if (!settings.onboardingDone) return@LaunchedEffect
+        val allowed = setOf(
+            Routes.ASSISTANT,
+            Routes.MESSAGES,
+            Routes.MAIL,
+            Routes.CAMERA,
+            Routes.SETTINGS,
+            Routes.LAUNCHER,
+        )
+        if (route in allowed) {
+            nav.navigate(Routes.LAUNCHER) {
+                popUpTo(nav.graph.startDestinationId) { inclusive = false }
+                launchSingleTop = true
+            }
+            if (route != Routes.LAUNCHER) {
+                nav.navigate(route) { launchSingleTop = true }
+            }
+            onDeepLinkConsumed()
+        }
+    }
 
     NavHost(
         navController = nav,

@@ -141,7 +141,11 @@ fun SettingsScreen(
                 OutlinedButton(
                     onClick = { SpideyOverlayService.start(context) },
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text("Start floating Pip") }
+                ) { Text("Start Pip Search Companion") }
+                OutlinedButton(
+                    onClick = { SpideyOverlayService.stop(context) },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Hide Pip companion") }
                 Spacer(Modifier.height(16.dp))
                 Text(AppCredits.ABOUT_LINE, color = SpideyGold, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                 Text(

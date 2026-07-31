@@ -1,9 +1,6 @@
 package com.jaikar.spideyos.ui.launcher
 
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.content.pm.ResolveInfo
-import android.graphics.Bitmap
 import android.text.format.DateFormat
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -63,8 +60,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.graphics.drawable.toBitmap
 import com.jaikar.spideyos.AppCredits
+import com.jaikar.spideyos.apps.AppCatalog
 import com.jaikar.spideyos.assistant.PupBrain
 import com.jaikar.spideyos.data.SpideySettings
 import com.jaikar.spideyos.sense.WeaveSense
@@ -84,12 +81,6 @@ data class HomeModule(
     val icon: ImageVector,
     val tint: Color,
     val onClick: () -> Unit,
-)
-
-data class InstalledApp(
-    val label: String,
-    val packageName: String,
-    val icon: Bitmap?,
 )
 
 @Composable
@@ -135,7 +126,7 @@ fun LauncherScreen(
         },
     )
 
-    val apps = remember { loadLaunchableApps(context.packageManager) }
+    val apps = remember { AppCatalog.loadLaunchableApps(context.packageManager) }
     val time = remember {
         DateFormat.getTimeFormat(context).format(Date())
     }
@@ -311,18 +302,3 @@ fun LauncherScreen(
     }
 }
 
-private fun loadLaunchableApps(pm: PackageManager): List<InstalledApp> {
-    val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
-    val resolved: List<ResolveInfo> = pm.queryIntentActivities(intent, PackageManager.MATCH_ALL)
-    return resolved
-        .mapNotNull { info ->
-            val label = info.loadLabel(pm)?.toString() ?: return@mapNotNull null
-            val pkg = info.activityInfo?.packageName ?: return@mapNotNull null
-            val icon = runCatching {
-                info.loadIcon(pm)?.toBitmap(192, 192)
-            }.getOrNull()
-            InstalledApp(label = label, packageName = pkg, icon = icon)
-        }
-        .distinctBy { it.packageName }
-        .sortedBy { it.label.lowercase() }
-}
