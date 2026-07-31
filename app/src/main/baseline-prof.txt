@@ -1,0 +1,7 @@
+# Baseline profile hints for Snapdragon + MediaTek (ProfileInstaller)
+# Expand with Macrobenchmark-generated profiles when instrumented tests are added.
+Lcom/jaikar/spideyos/MainActivity;
+Lcom/jaikar/spideyos/ui/launcher/LauncherScreenKt;
+Lcom/jaikar/spideyos/ui/assistant/AssistantScreenKt;
+Lcom/jaikar/spideyos/assistant/GeminiClient;
+Lcom/jaikar/spideyos/notifications/SpideyNotificationListener;

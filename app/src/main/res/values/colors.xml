@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="spidey_red">#C41E3A</color>
+    <color name="spidey_blue">#0B1D36</color>
+    <color name="spidey_navy">#102A43</color>
+    <color name="spidey_web">#E8EEF5</color>
+    <color name="spidey_gold">#F4C430</color>
+    <color name="ic_launcher_background">#C41E3A</color>
+</resources>
