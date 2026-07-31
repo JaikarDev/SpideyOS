@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jaikar.spideyos.assistant.PupBrain
 import com.jaikar.spideyos.data.SpideySettings
+import com.jaikar.spideyos.sense.WeaveSense
 import com.jaikar.spideyos.ui.adaptive.AdaptiveContent
 import com.jaikar.spideyos.ui.theme.SpideyGold
 import com.jaikar.spideyos.ui.theme.SpideyNavy
@@ -61,6 +62,7 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.cos
 import kotlin.math.sin
+import androidx.compose.ui.platform.LocalContext
 
 data class ThreadMessage(
     val id: Long = System.currentTimeMillis(),
@@ -109,13 +111,14 @@ fun WebMessagesScreen(
     val webProgress = remember { Animatable(0f) }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) listState.animateScrollToItem(messages.lastIndex)
         val last = messages.lastOrNull()
         if (last?.animateWeb == true && last.fromMe) {
             webProgress.snapTo(0f)
-            webProgress.animateTo(1f, tween(600, easing = LinearOutSlowInEasing))
+            webProgress.animateTo(1f, tween(750, easing = LinearOutSlowInEasing))
         }
     }
 
@@ -128,8 +131,8 @@ fun WebMessagesScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = SpideyWeb)
                     }
                     Column(Modifier.weight(1f)) {
-                        Text("ThreadBox", color = SpideyWeb, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                        Text("Rich weave chat · Pip reacts live", color = SpideyGold, fontSize = 12.sp)
+                        Text("ThreadBox", color = SpideyWeb, fontWeight = FontWeight.Bold, fontSize = 22.sp)
+                        Text("Message launcher · web-shoot send · WeaveSense", color = SpideyGold, fontSize = 12.sp)
                     }
                     Box(
                         Modifier
@@ -149,17 +152,31 @@ fun WebMessagesScreen(
                             val end = Offset(size.width * 0.55f, size.height * (1f - 0.4f * p))
                             val x = start.x + (end.x - start.x) * p
                             val y = start.y + (end.y - start.y) * p
-                            drawLine(SpideyWeb.copy(alpha = 0.55f), start, Offset(x, y), strokeWidth = 3.5f)
-                            val r = 20f * p
-                            for (i in 0 until 8) {
-                                val a = Math.PI * 2 * i / 8
+                            drawLine(SpideyWeb.copy(alpha = 0.65f), start, Offset(x, y), strokeWidth = 4.5f)
+                            // secondary web strands
+                            drawLine(
+                                SpideyGold.copy(alpha = 0.4f),
+                                Offset(start.x - 18f, start.y),
+                                Offset(x - 10f, y + 8f),
+                                strokeWidth = 2f,
+                            )
+                            drawLine(
+                                SpideyGold.copy(alpha = 0.4f),
+                                Offset(start.x + 12f, start.y - 6f),
+                                Offset(x + 14f, y - 6f),
+                                strokeWidth = 2f,
+                            )
+                            val r = 28f * p
+                            for (i in 0 until 10) {
+                                val a = Math.PI * 2 * i / 10
                                 drawLine(
-                                    SpideyGold.copy(alpha = 0.75f),
+                                    SpideyGold.copy(alpha = 0.8f),
                                     Offset(x, y),
                                     Offset(x + r * cos(a).toFloat(), y + r * sin(a).toFloat()),
-                                    strokeWidth = 2f,
+                                    strokeWidth = 2.4f,
                                 )
                             }
+                            drawCircle(SpideyWeb.copy(alpha = 0.5f), radius = 6f * p, center = Offset(x, y))
                         }
                     }
                     LazyColumn(
@@ -240,10 +257,12 @@ fun WebMessagesScreen(
                         onClick = {
                             val text = input.trim()
                             input = ""
+                            WeaveSense.shoot(context)
                             messages += ThreadMessage(fromMe = true, body = text, animateWeb = true)
                             scope.launch {
                                 pipTyping = true
                                 delay(700)
+                                WeaveSense.wag(context)
                                 val reply = PupBrain.chat(settings.userName, text)
                                 messages += ThreadMessage(
                                     fromMe = false,

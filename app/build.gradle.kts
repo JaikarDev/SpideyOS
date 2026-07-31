@@ -12,8 +12,8 @@ android {
         applicationId = "com.jaikar.weavehome"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
-        versionName = "2.1.0"
+        versionCode = 6
+        versionName = "2.3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -80,6 +80,7 @@ dependencies {
     implementation("androidx.camera:camera-camera2:$camerax")
     implementation("androidx.camera:camera-lifecycle:$camerax")
     implementation("androidx.camera:camera-view:$camerax")
+    implementation("androidx.camera:camera-video:$camerax")
 
     implementation("androidx.profileinstaller:profileinstaller:1.4.1")
 

@@ -7,6 +7,6 @@ object AppCredits {
     const val DEVELOPER_NAME = "Jaikar Pothula"
     const val DEVELOPER_TITLE = "Developer"
     const val CREDIT_LINE = "Developed by Jaikar Pothula"
-    const val ABOUT_LINE = "WeaveHome · Pip lives on your home screen · by Jaikar Pothula"
-    const val TAGLINE = "Your loyal home puppet — no cloud AI, no API keys"
+    const val ABOUT_LINE = "WeaveHome · Pip · WeaveSense · by Jaikar Pothula"
+    const val TAGLINE = "Fan-made woven phone home — original characters only"
 }

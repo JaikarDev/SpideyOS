@@ -6,10 +6,11 @@
 
 WeaveHome is an Android companion suite (API 26+):
 
+- Cinematic **splash** + smooth screen transitions
 - Immersive **home launcher** with original mascot **Pip**
 - Pip watches mail/message notifications you allow
-- **ThreadBox** rich messages, **Inbox Pulse**, **SnapBooth** camera
-- Works fully **on-device** — optional **Gemini** key makes chat smarter while Pip runs background actions (open mail/threads/camera, remember, wag)
+- **ThreadBox** rich messages, **Inbox Pulse**, **SnapBooth** photo + **video**
+- Works fully **on-device** — optional **Gemini** key makes chat smarter while Pip runs background actions
 
 ## Install
 

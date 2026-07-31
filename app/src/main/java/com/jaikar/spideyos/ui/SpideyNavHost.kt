@@ -13,10 +13,16 @@ import com.jaikar.spideyos.ui.camera.SnapBoothScreen
 import com.jaikar.spideyos.ui.launcher.LauncherScreen
 import com.jaikar.spideyos.ui.mail.MailDigestScreen
 import com.jaikar.spideyos.ui.messages.WebMessagesScreen
+import com.jaikar.spideyos.ui.motion.weaveEnter
+import com.jaikar.spideyos.ui.motion.weaveExit
+import com.jaikar.spideyos.ui.motion.weavePopEnter
+import com.jaikar.spideyos.ui.motion.weavePopExit
 import com.jaikar.spideyos.ui.onboarding.OnboardingScreen
 import com.jaikar.spideyos.ui.settings.SettingsScreen
+import com.jaikar.spideyos.ui.vibe.VibeSplashScreen
 
 object Routes {
+    const val SPLASH = "splash"
     const val ONBOARDING = "onboarding"
     const val LAUNCHER = "launcher"
     const val ASSISTANT = "assistant"
@@ -34,13 +40,33 @@ fun SpideyNavHost() {
         initial = com.jaikar.spideyos.data.SpideySettings(),
     )
     val nav = rememberNavController()
-    val start = if (settings.onboardingDone) Routes.LAUNCHER else Routes.ONBOARDING
+    val start = if (settings.onboardingDone) Routes.SPLASH else Routes.ONBOARDING
 
-    NavHost(navController = nav, startDestination = start) {
+    NavHost(
+        navController = nav,
+        startDestination = start,
+        enterTransition = { weaveEnter() },
+        exitTransition = { weaveExit() },
+        popEnterTransition = { weavePopEnter() },
+        popExitTransition = { weavePopExit() },
+    ) {
+        composable(Routes.SPLASH) {
+            VibeSplashScreen(
+                onFinished = {
+                    nav.navigate(Routes.LAUNCHER) {
+                        popUpTo(Routes.SPLASH) { inclusive = true }
+                    }
+                },
+            )
+        }
         composable(Routes.ONBOARDING) {
             OnboardingScreen(
                 settings = settings,
-                onFinished = { nav.navigate(Routes.LAUNCHER) { popUpTo(Routes.ONBOARDING) { inclusive = true } } },
+                onFinished = {
+                    nav.navigate(Routes.SPLASH) {
+                        popUpTo(Routes.ONBOARDING) { inclusive = true }
+                    }
+                },
             )
         }
         composable(Routes.LAUNCHER) {
