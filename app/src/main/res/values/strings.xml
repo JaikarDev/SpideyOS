@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">SpideyOS</string>
+    <string name="developer_name">Jaikar Pothula</string>
+    <string name="developer_credit">Developed by Jaikar Pothula</string>
     <string name="notification_listener_label">Spidey Notification Voice</string>
     <string name="overlay_channel_name">Spidey Assistant</string>
     <string name="overlay_channel_desc">Keeps Spidey ready to help</string>
     <string name="spidey_greeting">Hey %1$s!</string>
-    <string name="disclaimer">Unofficial fan project. Not affiliated with Marvel or Sony.</string>
+    <string name="disclaimer">Unofficial fan project by Jaikar Pothula. Not affiliated with Marvel or Sony.</string>
 </resources>

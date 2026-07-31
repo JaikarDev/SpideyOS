@@ -21,6 +21,10 @@ Open to Android / mobile / AI product engineering roles.
 - [ ] Link demo video (when ready)
 - [ ] Pin Post 2 (MVP ship) after release
 
+## Author
+
+**Jaikar Pothula** — Developer of SpideyOS
+
 ## Skills to add / endorse
 
 - Kotlin

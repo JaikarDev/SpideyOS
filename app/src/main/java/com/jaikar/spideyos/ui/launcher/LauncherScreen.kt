@@ -117,6 +117,12 @@ fun LauncherScreen(
                     fontSize = window.bodySp,
                 )
                 Text(
+                    com.jaikar.spideyos.SpideyCredits.CREDIT_LINE,
+                    color = SpideyWeb.copy(alpha = 0.7f),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                )
+                Text(
                     "${window.screenWidthDp}×${window.screenHeightDp}dp · adaptive ${window.widthClass.name.lowercase()}",
                     color = SpideyWeb.copy(alpha = 0.45f),
                     fontSize = 11.sp,

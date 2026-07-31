@@ -37,6 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jaikar.spideyos.SpideyApp
+import com.jaikar.spideyos.SpideyCredits
 import com.jaikar.spideyos.assistant.SpideyOverlayService
 import com.jaikar.spideyos.data.SpideySettings
 import com.jaikar.spideyos.ui.adaptive.AdaptiveContent
@@ -166,6 +167,12 @@ fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth(),
             ) { Text("Start floating Spidey") }
             Spacer(Modifier.height(16.dp))
+            Text(
+                SpideyCredits.ABOUT_LINE,
+                color = SpideyGold,
+                fontWeight = FontWeight.SemiBold,
+                fontSize = 14.sp,
+            )
             Text(
                 "Unofficial fan project. Not affiliated with Marvel or Sony.\nAdaptive UI for OnePlus · Samsung · Oppo · Vivo · Realme · Redmi · Xiaomi · Poco · Lava.",
                 color = SpideyWeb.copy(alpha = 0.65f),

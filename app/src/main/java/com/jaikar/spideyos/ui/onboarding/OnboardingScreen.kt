@@ -70,6 +70,12 @@ fun OnboardingScreen(
             Text("Your web-slinging Android companion", color = SpideyGold, fontSize = 16.sp)
             Spacer(Modifier.height(8.dp))
             Text(
+                "Developed by Jaikar Pothula",
+                color = SpideyGold,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
                 "Unofficial fan project — not affiliated with Marvel or Sony.",
                 color = SpideyWeb.copy(alpha = 0.7f),
                 fontSize = 12.sp,

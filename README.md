@@ -68,7 +68,10 @@ SpideyOS is an unofficial educational / portfolio project. Do not use copyrighte
 
 ## Author
 
-**Jaikar** — built in public for portfolio & community.
+**Jaikar Pothula** — Developer  
+Built in public for portfolio & community.
+
+Every SpideyOS install credits: **Developed by Jaikar Pothula**.
 
 ## License
 
