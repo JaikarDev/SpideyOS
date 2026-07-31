@@ -109,7 +109,7 @@ fun LauncherScreen(
     }
 
     val modules = listOf(
-        HomeModule("Pip", Icons.Default.Pets, SpideyGold) {
+        HomeModule("SpideyDashPip", Icons.Default.Pets, SpideyGold) {
             WeaveSense.tap(context); onOpenAssistant()
         },
         HomeModule("ThreadBox", Icons.AutoMirrored.Filled.Chat, SpideyRed) {

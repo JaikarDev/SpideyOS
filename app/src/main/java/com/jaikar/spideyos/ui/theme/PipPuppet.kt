@@ -6,7 +6,7 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -25,15 +25,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jaikar.spideyos.AppCredits
-import kotlin.math.sin
+import com.jaikar.spideyos.R
 
-/** Immersive on-home Pip puppet — original mascot, no franchise likeness. */
+/** In-app SpideyDashPip — same character art as the floating buddy. WeaveHome theme. */
 @Composable
 fun PipPuppet(
     moodText: String,
@@ -50,12 +50,6 @@ fun PipPuppet(
         ),
         label = "bob",
     )
-    val wag by breathe.animateFloat(
-        initialValue = -8f,
-        targetValue = 8f,
-        animationSpec = infiniteRepeatable(tween(500), RepeatMode.Reverse),
-        label = "wag",
-    )
 
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
@@ -68,35 +62,14 @@ fun PipPuppet(
                 .padding(12.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Canvas(Modifier.size(110.dp).scale(1f + bob * 0.03f)) {
-                val c = Offset(size.width / 2f, size.height / 2f + 6f)
-                // body
-                drawCircle(PipMint, radius = size.minDimension * 0.38f, center = c)
-                // ears
-                val ear = Path().apply {
-                    moveTo(c.x - 34f, c.y - 20f)
-                    quadraticBezierTo(c.x - 48f, c.y - 55f, c.x - 18f, c.y - 38f)
-                    close()
-                }
-                drawPath(ear, PipMint)
-                val ear2 = Path().apply {
-                    moveTo(c.x + 34f, c.y - 20f)
-                    quadraticBezierTo(c.x + 48f, c.y - 55f, c.x + 18f, c.y - 38f)
-                    close()
-                }
-                drawPath(ear2, PipMint)
-                // eyes
-                drawCircle(SpideyWeb, radius = 7f, center = Offset(c.x - 14f, c.y - 6f))
-                drawCircle(SpideyWeb, radius = 7f, center = Offset(c.x + 14f, c.y - 6f))
-                drawCircle(SpideyBlue, radius = 3.2f, center = Offset(c.x - 14f, c.y - 5f))
-                drawCircle(SpideyBlue, radius = 3.2f, center = Offset(c.x + 14f, c.y - 5f))
-                // nose
-                drawCircle(SpideyGold, radius = 5f, center = Offset(c.x, c.y + 8f))
-                // tail wag
-                val tx = c.x + 42f
-                val ty = c.y + 10f + sin(Math.toRadians(wag.toDouble())).toFloat() * 10f
-                drawLine(SpideyGold, Offset(c.x + 28f, c.y + 18f), Offset(tx, ty), strokeWidth = 6f)
-            }
+            Image(
+                painter = painterResource(R.drawable.spideydashpip),
+                contentDescription = AppCredits.MASCOT_NAME,
+                modifier = Modifier
+                    .size(110.dp)
+                    .scale(1f + bob * 0.03f),
+                contentScale = ContentScale.Fit,
+            )
         }
         Spacer(Modifier.height(8.dp))
         Text(
@@ -116,7 +89,7 @@ fun PipPuppet(
                 .padding(horizontal = 12.dp, vertical = 8.dp),
         )
         Text(
-            "Tap Pip · local companion · no API",
+            "Tap · local buddy · no API",
             color = SpideyWeb.copy(alpha = 0.5f),
             fontSize = 11.sp,
         )

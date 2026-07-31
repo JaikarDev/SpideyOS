@@ -1,8 +1,13 @@
 package com.jaikar.spideyos.ui.settings
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -36,6 +41,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import com.jaikar.spideyos.AppCredits
 import com.jaikar.spideyos.SpideyApp
 import com.jaikar.spideyos.assistant.SpideyOverlayService
@@ -57,6 +63,19 @@ fun SettingsScreen(
     var name by remember(settings.userName) { mutableStateOf(settings.userName) }
     var geminiKey by remember(settings.geminiApiKey) { mutableStateOf(settings.geminiApiKey) }
     var intensity by remember(settings.themeIntensity) { mutableFloatStateOf(settings.themeIntensity) }
+    val photoPerm = if (Build.VERSION.SDK_INT >= 33) {
+        Manifest.permission.READ_MEDIA_IMAGES
+    } else {
+        Manifest.permission.READ_EXTERNAL_STORAGE
+    }
+    val photoLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { }
+    val micLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (granted) SpideyOverlayService.start(context)
+    }
 
     Box(Modifier.fillMaxSize()) {
         WebBackground(intensity = intensity)
@@ -74,7 +93,7 @@ fun SettingsScreen(
                 }
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    "Pip always works offline. Gemini is optional for richer chat + background actions.",
+                    "SpideyDashPip floats on your phone’s own OS (OxygenOS / One UI / etc) — not a theme. Walks, wakes, sleeps, suggests.",
                     color = SpideyGold,
                     fontSize = 13.sp,
                 )
@@ -97,7 +116,7 @@ fun SettingsScreen(
                 Spacer(Modifier.height(12.dp))
                 Text("Theme intensity", color = SpideyGold)
                 Slider(value = intensity, onValueChange = { intensity = it }, valueRange = 0.3f..1f)
-                SettingSwitch("Pip watch notifications", settings.spideyVoiceEnabled) {
+                SettingSwitch("SpideyDashPip watch notifications", settings.spideyVoiceEnabled) {
                     scope.launch { repo.setSpideyVoiceEnabled(it) }
                 }
                 SettingSwitch("ThreadBox module", settings.messagesEnabled) {
@@ -139,17 +158,33 @@ fun SettingsScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) { Text("Overlay permission") }
                 OutlinedButton(
-                    onClick = { SpideyOverlayService.start(context) },
+                    onClick = {
+                        if (ContextCompat.checkSelfPermission(context, photoPerm) != PackageManager.PERMISSION_GRANTED) {
+                            photoLauncher.launch(photoPerm)
+                        }
+                    },
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text("Start Pip Search Companion") }
+                ) { Text("Photos permission · gallery peek") }
+                OutlinedButton(
+                    onClick = {
+                        if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) !=
+                            PackageManager.PERMISSION_GRANTED
+                        ) {
+                            micLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                        } else {
+                            SpideyOverlayService.start(context)
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Start SpideyDashPip") }
                 OutlinedButton(
                     onClick = { SpideyOverlayService.stop(context) },
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text("Hide Pip companion") }
+                ) { Text("Wave goodbye · hide buddy") }
                 Spacer(Modifier.height(16.dp))
                 Text(AppCredits.ABOUT_LINE, color = SpideyGold, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                 Text(
-                    "Original product. No cloud AI. No franchise characters.\nAdaptive for OnePlus · Samsung · Oppo · Vivo · Realme · Redmi · Xiaomi · Poco · Lava.",
+                    "SpideyDashPip · talks mail & WhatsApp · music ticker · listen by name.\nAdaptive for OnePlus · Samsung · Oppo · Vivo · Realme · Redmi · Xiaomi · Poco · Lava.",
                     color = SpideyWeb.copy(alpha = 0.65f),
                     fontSize = 12.sp,
                 )

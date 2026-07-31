@@ -74,6 +74,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.jaikar.spideyos.assistant.PupBrain
+import com.jaikar.spideyos.companion.DashEvent
+import com.jaikar.spideyos.companion.SpideyDashPipBus
 import com.jaikar.spideyos.data.SpideySettings
 import com.jaikar.spideyos.ui.theme.SpideyGold
 import com.jaikar.spideyos.ui.theme.SpideyNavy
@@ -311,6 +313,7 @@ fun SnapBoothScreen(
                                     object : ImageCapture.OnImageSavedCallback {
                                         override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
                                             val line = PupBrain.reactToPhoto(settings.userName)
+                                            SpideyDashPipBus.emit(DashEvent.CameraCaptured)
                                             ContextCompat.getMainExecutor(context).execute {
                                                 reaction = line
                                                 flash = false
@@ -345,6 +348,7 @@ fun SnapBoothScreen(
                                             recording = false
                                             activeRecording = null
                                             reaction = if (ok) {
+                                                SpideyDashPipBus.emit(DashEvent.CameraCaptured)
                                                 PupBrain.chat(settings.userName, "video done")
                                                     .ifBlank { "*tail spin* Video woven, ${settings.userName}!" }
                                             } else {

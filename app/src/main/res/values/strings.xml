@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">WeaveHome</string>
-    <string name="mascot_name">Pip</string>
+    <string name="mascot_name">SpideyDashPip</string>
     <string name="developer_name">Jaikar Pothula</string>
     <string name="developer_credit">Developed by Jaikar Pothula</string>
-    <string name="notification_listener_label">Pip Watch</string>
-    <string name="overlay_channel_name">Pip Companion</string>
-    <string name="overlay_channel_desc">Keeps Pip on your home as a loyal puppet</string>
-    <string name="disclaimer">Original work by Jaikar Pothula. No cloud AI. No third-party character brands.</string>
+    <string name="notification_listener_label">SpideyDashPip Watch</string>
+    <string name="overlay_channel_name">SpideyDashPip</string>
+    <string name="overlay_channel_desc">Keeps SpideyDashPip roaming as your desktop buddy</string>
+    <string name="disclaimer">WeaveHome by Jaikar Pothula. SpideyDashPip is a scripted desktop buddy. No cloud AI required.</string>
 </resources>

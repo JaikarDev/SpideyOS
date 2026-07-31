@@ -5,4 +5,15 @@
         <item name="android:navigationBarColor">@color/spidey_blue</item>
         <item name="android:windowBackground">@color/spidey_blue</item>
     </style>
+
+    <!-- Overlay must be fully clear — no gray/white window plate behind SpideyDashPip -->
+    <style name="Theme.SpideyOverlay" parent="@android:style/Theme.Translucent.NoTitleBar">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:colorBackgroundCacheHint">@null</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:background">@android:color/transparent</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
 </resources>

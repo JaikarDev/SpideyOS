@@ -20,6 +20,7 @@ data class SpideySettings(
     val mailEnabled: Boolean = true,
     val cameraEnabled: Boolean = true,
     val spideyVoiceEnabled: Boolean = true,
+    val buddyEnabled: Boolean = false,
 )
 
 class SettingsRepository(private val context: Context) {
@@ -32,6 +33,7 @@ class SettingsRepository(private val context: Context) {
         val MAIL = booleanPreferencesKey("mail_enabled")
         val CAMERA = booleanPreferencesKey("camera_enabled")
         val VOICE = booleanPreferencesKey("pip_watch_enabled")
+        val BUDDY = booleanPreferencesKey("spideydashpip_enabled")
     }
 
     val settings: Flow<SpideySettings> = context.dataStore.data.map { p ->
@@ -44,6 +46,7 @@ class SettingsRepository(private val context: Context) {
             mailEnabled = p[Keys.MAIL] ?: true,
             cameraEnabled = p[Keys.CAMERA] ?: true,
             spideyVoiceEnabled = p[Keys.VOICE] ?: true,
+            buddyEnabled = p[Keys.BUDDY] ?: false,
         )
     }
 
@@ -78,4 +81,9 @@ class SettingsRepository(private val context: Context) {
     suspend fun setSpideyVoiceEnabled(enabled: Boolean) {
         context.dataStore.edit { it[Keys.VOICE] = enabled }
     }
+
+    suspend fun setBuddyEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.BUDDY] = enabled }
+    }
 }
+
