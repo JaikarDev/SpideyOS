@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import com.jaikar.spideyos.SpideyApp
 import com.jaikar.spideyos.assistant.SpideyOverlayService
 import com.jaikar.spideyos.data.SpideySettings
+import com.jaikar.spideyos.ui.adaptive.AdaptiveContent
 import com.jaikar.spideyos.ui.theme.SpideyGold
 import com.jaikar.spideyos.ui.theme.SpideyWeb
 import com.jaikar.spideyos.ui.theme.WebBackground
@@ -61,11 +62,11 @@ fun SettingsScreen(
 
     Box(Modifier.fillMaxSize()) {
         WebBackground(intensity = intensity)
+        AdaptiveContent {
         Column(
             Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
+                .verticalScroll(rememberScrollState()),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onBack) {
@@ -166,10 +167,11 @@ fun SettingsScreen(
             ) { Text("Start floating Spidey") }
             Spacer(Modifier.height(16.dp))
             Text(
-                "Unofficial fan project. Not affiliated with Marvel or Sony.",
+                "Unofficial fan project. Not affiliated with Marvel or Sony.\nAdaptive UI for OnePlus · Samsung · Oppo · Vivo · Realme · Redmi · Xiaomi · Poco · Lava.",
                 color = SpideyWeb.copy(alpha = 0.65f),
                 fontSize = 12.sp,
             )
+        }
         }
     }
 }

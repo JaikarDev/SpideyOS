@@ -49,6 +49,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jaikar.spideyos.data.SpideySettings
+import com.jaikar.spideyos.ui.adaptive.AdaptiveContent
+import com.jaikar.spideyos.ui.adaptive.SpideyWidthClass
+import com.jaikar.spideyos.ui.adaptive.rememberSpideyWindowInfo
 import com.jaikar.spideyos.ui.theme.MiniWebBadge
 import com.jaikar.spideyos.ui.theme.SpideyGold
 import com.jaikar.spideyos.ui.theme.SpideyNavy
@@ -78,6 +81,7 @@ fun LauncherScreen(
     onOpenSettings: () -> Unit,
 ) {
     val context = LocalContext.current
+    val window = rememberSpideyWindowInfo()
     val webScale = remember { Animatable(0.2f) }
     LaunchedEffect(Unit) {
         webScale.animateTo(1f, tween(900, easing = FastOutSlowInEasing))
@@ -98,99 +102,119 @@ fun LauncherScreen(
     Box(Modifier.fillMaxSize()) {
         WebBackground(intensity = settings.themeIntensity)
         WebShootOpenAnimation()
-        Column(
-            Modifier
-                .fillMaxSize()
-                .padding(horizontal = 20.dp, vertical = 36.dp),
-        ) {
-            Text(
-                "SpideyOS",
-                color = SpideyWeb,
-                fontSize = 34.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.scale(webScale.value),
-            )
-            Text(
-                "Hey ${settings.userName} — ready to swing?",
-                color = SpideyGold,
-                fontSize = 16.sp,
-            )
-            Spacer(Modifier.height(20.dp))
-            Text("Spidey Modules", color = SpideyWeb.copy(alpha = 0.8f), fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(10.dp))
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                modules.forEach { mod ->
-                    Column(
-                        Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(SpideyNavy.copy(alpha = 0.75f))
-                            .clickable(onClick = mod.onClick)
-                            .padding(vertical = 12.dp, horizontal = 4.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
+        AdaptiveContent {
+            Column(Modifier.fillMaxSize()) {
+                Text(
+                    "SpideyOS",
+                    color = SpideyWeb,
+                    fontSize = window.titleSp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.scale(webScale.value),
+                )
+                Text(
+                    "Hey ${settings.userName} — ready to swing?",
+                    color = SpideyGold,
+                    fontSize = window.bodySp,
+                )
+                Text(
+                    "${window.screenWidthDp}×${window.screenHeightDp}dp · adaptive ${window.widthClass.name.lowercase()}",
+                    color = SpideyWeb.copy(alpha = 0.45f),
+                    fontSize = 11.sp,
+                )
+                Spacer(Modifier.height(16.dp))
+                Text("Spidey Modules", color = SpideyWeb.copy(alpha = 0.8f), fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(10.dp))
+                if (window.widthClass == SpideyWidthClass.Compact && !window.isLandscape) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            MiniWebBadge(Modifier.size(36.dp), SpideyRed)
-                            Icon(mod.icon, contentDescription = mod.title, tint = SpideyWeb, modifier = Modifier.size(20.dp))
+                        modules.forEach { mod ->
+                            ModuleChip(mod, Modifier.weight(1f))
                         }
-                        Spacer(Modifier.height(6.dp))
-                        Text(mod.title, color = SpideyWeb, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                } else {
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(minSize = 120.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.height(if (window.isTablet) 140.dp else 120.dp),
+                    ) {
+                        items(modules) { mod ->
+                            ModuleChip(mod, Modifier.fillMaxWidth())
+                        }
                     }
                 }
-            }
-            Spacer(Modifier.height(22.dp))
-            Text("Apps", color = SpideyWeb.copy(alpha = 0.8f), fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(8.dp))
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(84.dp),
-                contentPadding = PaddingValues(bottom = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                items(apps) { app ->
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(14.dp))
-                            .clickable {
-                                context.packageManager.getLaunchIntentForPackage(app.packageName)?.let {
-                                    context.startActivity(it)
+                Spacer(Modifier.height(18.dp))
+                Text("Apps", color = SpideyWeb.copy(alpha = 0.8f), fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(8.dp))
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = window.gridMinCell),
+                    contentPadding = PaddingValues(bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    items(apps) { app ->
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(14.dp))
+                                .clickable {
+                                    context.packageManager.getLaunchIntentForPackage(app.packageName)?.let {
+                                        context.startActivity(it)
+                                    }
                                 }
-                            }
-                            .padding(6.dp),
-                    ) {
-                        Box(
-                            Modifier
-                                .size(52.dp)
-                                .clip(CircleShape)
-                                .background(SpideyRed.copy(alpha = 0.85f))
-                                .aspectRatio(1f),
-                            contentAlignment = Alignment.Center,
+                                .padding(6.dp),
                         ) {
+                            Box(
+                                Modifier
+                                    .size(if (window.isTablet) 60.dp else 52.dp)
+                                    .clip(CircleShape)
+                                    .background(SpideyRed.copy(alpha = 0.85f))
+                                    .aspectRatio(1f),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    app.label.take(1).uppercase(),
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = if (window.isTablet) 22.sp else 20.sp,
+                                )
+                            }
+                            Spacer(Modifier.height(4.dp))
                             Text(
-                                app.label.take(1).uppercase(),
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 20.sp,
+                                app.label,
+                                color = SpideyWeb,
+                                fontSize = if (window.smallestWidthDp < 360) 10.sp else 11.sp,
+                                maxLines = 2,
+                                textAlign = TextAlign.Center,
+                                overflow = TextOverflow.Ellipsis,
                             )
                         }
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            app.label,
-                            color = SpideyWeb,
-                            fontSize = 11.sp,
-                            maxLines = 2,
-                            textAlign = TextAlign.Center,
-                            overflow = TextOverflow.Ellipsis,
-                        )
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ModuleChip(mod: SpideyModule, modifier: Modifier = Modifier) {
+    Column(
+        modifier
+            .clip(RoundedCornerShape(16.dp))
+            .background(SpideyNavy.copy(alpha = 0.75f))
+            .clickable(onClick = mod.onClick)
+            .padding(vertical = 12.dp, horizontal = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            MiniWebBadge(Modifier.size(36.dp), SpideyRed)
+            Icon(mod.icon, contentDescription = mod.title, tint = SpideyWeb, modifier = Modifier.size(20.dp))
+        }
+        Spacer(Modifier.height(6.dp))
+        Text(mod.title, color = SpideyWeb, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 

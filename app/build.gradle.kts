@@ -18,10 +18,11 @@ android {
 
     defaultConfig {
         applicationId = "com.jaikar.spideyos"
-        minSdk = 35
+        // Android 8+ so Samsung / Xiaomi / Oppo / Vivo / Realme / Redmi / Poco / OnePlus / Lava devices can install
+        minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "GEMINI_API_KEY", "\"$geminiKey\"")
     }
@@ -55,6 +56,10 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "/META-INF/NOTICE.md"
+            excludes += "/META-INF/LICENSE.md"
+            excludes += "/META-INF/DEPENDENCIES"
+            excludes += "META-INF/*.kotlin_module"
         }
     }
 }
@@ -86,6 +91,7 @@ dependencies {
     implementation("androidx.camera:camera-view:$camerax")
 
     implementation("androidx.profileinstaller:profileinstaller:1.4.1")
+    implementation("androidx.compose.material3:material3-window-size-class")
 
     // IMAP for Mail Digest (Gmail app password / any IMAP host)
     implementation("com.sun.mail:android-mail:1.6.7")

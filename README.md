@@ -11,11 +11,11 @@ SpideyOS is an **Android 15+ (API 35)** experience:
 - Notifications in Spidey’s voice (“Hey Jaikar, you’ve got mail”)
 - **Web-style messages**, **mail digest**, and **Peter Parker camera**
 
-Works on phones and tablets (Snapdragon & MediaTek). **No root required.**
+Works on phones and tablets across **OnePlus, Samsung, Oppo, Vivo, Realme, Redmi, Xiaomi, Poco, Lava** and more (Android **8+** / API 26, targets API 35). Layouts **auto-adapt** to screen size and resolution. **No root required.**
 
 ## Requirements
 
-- Android **15** or newer
+- Android **8.0+** (Oreo) — best experience on Android 12–15
 - Optional: Gemini API key (for Spidey chat)
 - Permissions: Notification access, Display over other apps (for full experience)
 

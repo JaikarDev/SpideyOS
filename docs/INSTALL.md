@@ -2,20 +2,26 @@
 
 ## Device requirements
 
-- Android **15** (API 35) or newer
-- Phone or tablet (Snapdragon or MediaTek supported)
+- Android **8.0+** (API 26) — works on **OnePlus, Samsung, Oppo, Vivo, Realme, Redmi, Xiaomi, Poco, Lava**, and others
+- Phone or tablet — UI **auto-adapts** to size and resolution (notch / punch-hole safe)
+- Snapdragon or MediaTek both supported
 - ~50 MB free storage
+
+## Ready-built APK (this PC)
+
+Copy to your phone and install:
+
+`C:\Users\win\Desktop\Spiderman For android phone\dist\SpideyOS-debug.apk`
 
 ## Sideload APK (users)
 
-1. Download `SpideyOS-vX.Y.Z.apk` from GitHub **Releases**
-2. On your phone: open the APK → **Install**
-3. Launch **SpideyOS**
-4. Enter your name (default demo: Jaikar)
-5. Paste Gemini API key (optional but recommended)
-6. Tap **Enable Notification Access** → allow SpideyOS
-7. Tap **Enable Overlay** → allow “Display over other apps”
-8. (Optional) Home button → **Spidey Launcher** → Always
+1. Open the APK on the phone → **Install** (allow unknown apps if asked)
+2. Launch **SpideyOS**
+3. Enter your name (default demo: Jaikar)
+4. Paste Gemini API key (optional but recommended)
+5. Tap **Enable Notification Access** → allow SpideyOS
+6. Tap **Enable Overlay** → allow “Display over other apps”
+7. (Optional) Home button → **Spidey Launcher** → Always
 
 ## Developer USB install
 

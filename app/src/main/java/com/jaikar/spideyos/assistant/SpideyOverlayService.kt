@@ -7,7 +7,9 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.graphics.PixelFormat
+import android.os.Build
 import android.os.IBinder
 import android.provider.Settings
 import android.view.Gravity
@@ -15,6 +17,7 @@ import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
 import com.jaikar.spideyos.MainActivity
 import com.jaikar.spideyos.R
 import com.jaikar.spideyos.SpideyApp
@@ -34,7 +37,17 @@ class SpideyOverlayService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        startForeground(NOTIF_ID, buildNotification())
+        val notification = buildNotification()
+        if (Build.VERSION.SDK_INT >= 34) {
+            ServiceCompat.startForeground(
+                this,
+                NOTIF_ID,
+                notification,
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
+            )
+        } else {
+            startForeground(NOTIF_ID, notification)
+        }
         if (Settings.canDrawOverlays(this)) {
             attachBubble()
         }
@@ -43,13 +56,20 @@ class SpideyOverlayService : Service() {
     private fun attachBubble() {
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         val density = resources.displayMetrics.density
-        val size = (56 * density).toInt()
+        // Scale bubble with screen density / size (phones → tablets)
+        val sw = resources.configuration.smallestScreenWidthDp
+        val base = when {
+            sw >= 600 -> 64f
+            sw < 360 -> 48f
+            else -> 56f
+        }
+        val size = (base * density).toInt()
         val view = FrameLayout(this).apply {
             setBackgroundColor(0xFFC41E3A.toInt())
             val label = TextView(this@SpideyOverlayService).apply {
                 text = "S"
                 setTextColor(0xFFE8EEF5.toInt())
-                textSize = 22f
+                textSize = if (sw >= 600) 26f else 22f
                 gravity = Gravity.CENTER
             }
             addView(label, FrameLayout.LayoutParams(size, size, Gravity.CENTER))
@@ -76,12 +96,8 @@ class SpideyOverlayService : Service() {
 
         scope.launch {
             val name = SpideyApp.instance.settings.settings.first().userName
-            // Subtle toast-like content description via notification update
             val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-            nm.notify(
-                NOTIF_ID,
-                buildNotification("Hey $name — Spidey is on watch."),
-            )
+            nm.notify(NOTIF_ID, buildNotification("Hey $name — Spidey is on watch."))
         }
     }
 
@@ -111,7 +127,7 @@ class SpideyOverlayService : Service() {
     }
 
     override fun onDestroy() {
-        bubble?.let { windowManager?.removeView(it) }
+        bubble?.let { runCatching { windowManager?.removeView(it) } }
         job.cancel()
         super.onDestroy()
     }
@@ -121,7 +137,12 @@ class SpideyOverlayService : Service() {
 
         fun start(context: Context) {
             if (!Settings.canDrawOverlays(context)) return
-            context.startForegroundService(Intent(context, SpideyOverlayService::class.java))
+            val intent = Intent(context, SpideyOverlayService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
         }
 
         fun stop(context: Context) {
