@@ -71,9 +71,11 @@ object DashSearchCatalog {
                 launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 context.startActivity(launch)
             }
+            DashSearchKind.PEOPLE -> Unit // Names only in list — Spidy never opens number sheets
             DashSearchKind.WEB -> Unit
             else -> {
                 val uri = hit.uri ?: return
+                if (DashPrivacyGuard.isHiddenOrSensitiveFile(hit.title, uri.toString())) return
                 val intent = Intent(Intent.ACTION_VIEW).apply {
                     setDataAndType(uri, mimeFor(hit.kind))
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION)
@@ -131,6 +133,7 @@ object DashSearchCatalog {
                     val id = c.getLong(idIdx)
                     val name = c.getString(nameIdx) ?: continue
                     val uri = Uri.withAppendedPath(collection, id.toString())
+                    if (DashPrivacyGuard.isHiddenOrSensitiveFile(name, uri.toString())) continue
                     val thumb = if (kind == DashSearchKind.PICTURES) {
                         runCatching {
                             context.contentResolver.openInputStream(uri)?.use { stream ->
@@ -167,6 +170,7 @@ object DashSearchCatalog {
         if (ContextCompat.checkSelfPermission(context, perm) != PackageManager.PERMISSION_GRANTED) {
             return emptyList()
         }
+        // Names only — never query Phone / Email tables.
         return runCatching {
             val projection = arrayOf(
                 ContactsContract.Contacts._ID,
@@ -186,14 +190,15 @@ object DashSearchCatalog {
                 val nameIdx = c.getColumnIndexOrThrow(ContactsContract.Contacts.DISPLAY_NAME_PRIMARY)
                 while (c.moveToNext() && out.size < 24) {
                     val id = c.getLong(idIdx)
-                    val name = c.getString(nameIdx) ?: continue
-                    val uri = Uri.withAppendedPath(ContactsContract.Contacts.CONTENT_URI, id.toString())
+                    val safeName = DashPrivacyGuard.safeContactName(c.getString(nameIdx)) ?: continue
                     out += DashHit(
                         id = "people:$id",
-                        title = name,
-                        subtitle = "People",
+                        title = safeName,
+                        subtitle = "Name only · no numbers",
                         kind = DashSearchKind.PEOPLE,
-                        uri = uri,
+                        // Do not attach contact URI that opens number sheets from Spidy.
+                        uri = null,
+                        packageName = null,
                     )
                 }
                 out

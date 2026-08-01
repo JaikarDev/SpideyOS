@@ -36,10 +36,14 @@ import com.jaikar.spideyos.data.SpideySettings
 import com.jaikar.spideyos.mail.MailDigestStore
 import com.jaikar.spideyos.mail.MailItem
 import com.jaikar.spideyos.ui.adaptive.AdaptiveContent
-import com.jaikar.spideyos.ui.theme.SpideyGold
-import com.jaikar.spideyos.ui.theme.SpideyNavy
-import com.jaikar.spideyos.ui.theme.SpideyWeb
-import com.jaikar.spideyos.ui.theme.WebBackground
+import com.jaikar.spideyos.ui.theme.Fraunces
+import com.jaikar.spideyos.ui.theme.Outfit
+import com.jaikar.spideyos.ui.theme.VaAtmosphere
+import com.jaikar.spideyos.ui.theme.VaCloud
+import com.jaikar.spideyos.ui.theme.VaInk
+import com.jaikar.spideyos.ui.theme.VaMintDeep
+import com.jaikar.spideyos.ui.theme.VaMuted
+import com.jaikar.spideyos.ui.theme.VaSoft
 
 @Composable
 fun MailDigestScreen(
@@ -51,16 +55,16 @@ fun MailDigestScreen(
     val inbox = MailDigestStore.demoInbox
 
     Box(Modifier.fillMaxSize()) {
-        WebBackground(intensity = settings.themeIntensity)
+        VaAtmosphere()
         AdaptiveContent {
             Column(Modifier.fillMaxSize()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = SpideyWeb)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = VaInk)
                     }
                     Column(Modifier.weight(1f)) {
-                        Text("Inbox Pulse", color = SpideyWeb, fontWeight = FontWeight.Bold, fontSize = 20.sp)
-                        Text("Pip announces mail on-device for ${settings.userName}", color = SpideyGold, fontSize = 12.sp)
+                        Text("Inbox Pulse", color = VaInk, fontFamily = Fraunces, fontWeight = FontWeight.Bold, fontSize = 22.sp)
+                        Text("Spidy announces mail on-device for ${settings.userName}", color = VaMuted, fontFamily = Outfit, fontSize = 12.sp)
                     }
                 }
                 Spacer(Modifier.height(8.dp))
@@ -87,11 +91,12 @@ fun MailDigestScreen(
                     Spacer(Modifier.height(10.dp))
                     Text(
                         it,
-                        color = SpideyWeb,
+                        color = VaInk,
+                        fontFamily = Outfit,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(SpideyNavy.copy(alpha = 0.85f), RoundedCornerShape(12.dp))
-                            .padding(12.dp),
+                            .background(VaCloud, RoundedCornerShape(18.dp))
+                            .padding(14.dp),
                     )
                 }
                 Spacer(Modifier.height(12.dp))
@@ -100,15 +105,15 @@ fun MailDigestScreen(
                         Column(
                             Modifier
                                 .fillMaxWidth()
-                                .background(SpideyNavy.copy(alpha = 0.8f), RoundedCornerShape(12.dp))
+                                .background(VaCloud, RoundedCornerShape(18.dp))
                                 .clickable {
-                                    summary = "Pip skim: “${mail.subject}” from ${mail.from}. ${mail.preview}"
+                                    summary = "Spidy skim: “${mail.subject}” from ${mail.from}. ${mail.preview}"
                                 }
-                                .padding(12.dp),
+                                .padding(14.dp),
                         ) {
-                            Text(mail.from, color = SpideyGold, fontWeight = FontWeight.SemiBold)
-                            Text(mail.subject, color = SpideyWeb, fontWeight = FontWeight.Medium)
-                            Text(mail.preview, color = SpideyWeb.copy(alpha = 0.75f), fontSize = 13.sp)
+                            Text(mail.from, color = VaMintDeep, fontFamily = Outfit, fontWeight = FontWeight.SemiBold)
+                            Text(mail.subject, color = VaInk, fontFamily = Outfit, fontWeight = FontWeight.Medium)
+                            Text(mail.preview, color = VaMuted, fontFamily = Outfit, fontSize = 13.sp)
                         }
                     }
                 }

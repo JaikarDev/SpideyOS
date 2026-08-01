@@ -46,11 +46,19 @@ object WeaveSense {
         }
     }
 
+    /** Spidy wake — “danger tingle” when you call his name. */
+    val PATTERN_SPIDY = longArrayOf(0, 40, 45, 40, 45, 90, 35, 55, 30)
+
     fun sense(context: Context) = vibrate(context, PATTERN_SENSE, 200)
     fun shoot(context: Context) = vibrate(context, PATTERN_SHOOT, 220)
     fun notify(context: Context) = vibrate(context, PATTERN_NOTIFY, 255)
     fun wag(context: Context) = vibrate(context, PATTERN_WAG, 140)
     fun tap(context: Context) = vibrate(context, PATTERN_TAP, 100)
+
+    /** Full Spidy-sense reaction when the user says Spidy / hey Spidy. */
+    fun spidySense(context: Context) {
+        vibrate(context, PATTERN_SPIDY, 230)
+    }
 
     private fun vibrator(context: Context): Vibrator? {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {

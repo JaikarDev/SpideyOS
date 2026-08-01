@@ -28,8 +28,9 @@ object DashNotifyApps {
     }
 
     fun speakLine(userName: String, kind: Kind, from: String?): String {
-        val who = from?.takeIf { it.isNotBlank() && !it.equals(kind.appName, true) }
-        return when (kind.type) {
+        val who = DashPrivacyGuard.redactPii(from)
+            .takeIf { it.isNotBlank() && !it.equals(kind.appName, true) && !it.contains("hidden") }
+        val line = when (kind.type) {
             Type.MAIL -> if (who != null) {
                 "Hey bud — you got mail from $who, $userName!"
             } else {
@@ -42,6 +43,7 @@ object DashNotifyApps {
             }
             Type.OTHER -> "Hey bud — something new just popped up, $userName!"
         }
+        return DashPrivacyGuard.safeSpeakLine(line)
     }
 
     private fun pretty(pkg: String, fallback: String): String {

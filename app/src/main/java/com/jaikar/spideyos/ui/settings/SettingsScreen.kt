@@ -8,6 +8,7 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,13 +21,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -37,6 +38,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -47,15 +49,24 @@ import com.jaikar.spideyos.SpideyApp
 import com.jaikar.spideyos.assistant.SpideyOverlayService
 import com.jaikar.spideyos.data.SpideySettings
 import com.jaikar.spideyos.ui.adaptive.AdaptiveContent
-import com.jaikar.spideyos.ui.theme.SpideyGold
-import com.jaikar.spideyos.ui.theme.SpideyWeb
-import com.jaikar.spideyos.ui.theme.WebBackground
+import com.jaikar.spideyos.ui.theme.Fraunces
+import com.jaikar.spideyos.ui.theme.Outfit
+import com.jaikar.spideyos.ui.theme.VaAtmosphere
+import com.jaikar.spideyos.ui.theme.VaGhostButton
+import com.jaikar.spideyos.ui.theme.NestSurface
+import com.jaikar.spideyos.ui.theme.VaInk
+import com.jaikar.spideyos.ui.theme.VaMint
+import com.jaikar.spideyos.ui.theme.VaMuted
+import com.jaikar.spideyos.ui.theme.VaPrimaryButton
+import com.jaikar.spideyos.ui.theme.VaSectionLabel
 import kotlinx.coroutines.launch
 
 @Composable
 fun SettingsScreen(
     settings: SpideySettings,
     onBack: () -> Unit,
+    onOpenToday: () -> Unit = {},
+    onOpenPermissions: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val repo = (context.applicationContext as SpideyApp).settings
@@ -68,125 +79,169 @@ fun SettingsScreen(
     } else {
         Manifest.permission.READ_EXTERNAL_STORAGE
     }
-    val photoLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission(),
-    ) { }
-    val micLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission(),
-    ) { granted ->
-        if (granted) SpideyOverlayService.start(context)
+    val photoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
+    val micLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) {
+            SpideyOverlayService.stop(context)
+            SpideyOverlayService.start(context)
+        }
     }
 
     Box(Modifier.fillMaxSize()) {
-        WebBackground(intensity = intensity)
+        VaAtmosphere()
         AdaptiveContent {
             Column(
                 Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState()),
+                    .verticalScroll(rememberScrollState())
+                    .padding(bottom = 32.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = SpideyWeb)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = VaInk)
                     }
-                    Text("Settings", color = SpideyWeb, fontWeight = FontWeight.Bold, fontSize = 22.sp)
+                    Text(
+                        "Nest",
+                        color = VaInk,
+                        fontFamily = Fraunces,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 28.sp,
+                    )
                 }
-                Spacer(Modifier.height(12.dp))
                 Text(
-                    "SpideyDashPip floats on your phone’s own OS (OxygenOS / One UI / etc) — not a theme. Walks, wakes, sleeps, suggests.",
-                    color = SpideyGold,
+                    "Spidy floats on your phone’s OS. Local-first — no location, no numbers.",
+                    color = VaMuted,
+                    fontFamily = Outfit,
                     fontSize = 13.sp,
+                    modifier = Modifier.padding(horizontal = 8.dp),
                 )
+                Spacer(Modifier.height(16.dp))
+
+                NestSurface(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text("Your name") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    OutlinedTextField(
+                        value = geminiKey,
+                        onValueChange = { geminiKey = it },
+                        label = { Text("Optional Gemini key") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Text("Atmosphere", color = VaMuted, fontFamily = Outfit, fontSize = 12.sp)
+                    Slider(value = intensity, onValueChange = { intensity = it }, valueRange = 0.3f..1f)
+                    VaPrimaryButton(
+                        text = "Save profile",
+                        onClick = {
+                            scope.launch {
+                                repo.setUserName(name)
+                                repo.setGeminiKey(geminiKey)
+                                repo.setThemeIntensity(intensity)
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+
+                Spacer(Modifier.height(16.dp))
+                VaSectionLabel("Companion")
                 Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Your name") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
+                NestSurface(modifier = Modifier.fillMaxWidth()) {
+                    NestSwitch("Watch notifications", settings.spideyVoiceEnabled) {
+                        scope.launch { repo.setSpideyVoiceEnabled(it) }
+                    }
+                    NestSwitch("Morning / night routines", settings.routinesEnabled) {
+                        scope.launch { repo.setRoutinesEnabled(it) }
+                    }
+                    NestSwitch("Smart digest", settings.digestEnabled) {
+                        scope.launch { repo.setDigestEnabled(it) }
+                    }
+                    NestSwitch("Memory", settings.memoryEnabled) {
+                        scope.launch { repo.setMemoryEnabled(it) }
+                    }
+                    NestSwitch("Device actions", settings.automationEnabled) {
+                        scope.launch { repo.setAutomationEnabled(it) }
+                    }
+                    NestSwitch("Meetings & reminders", settings.meetingsEnabled) {
+                        scope.launch { repo.setMeetingsEnabled(it) }
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+                VaSectionLabel("Modules")
                 Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = geminiKey,
-                    onValueChange = { geminiKey = it },
-                    label = { Text("Optional Gemini API key") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                )
-                Spacer(Modifier.height(12.dp))
-                Text("Theme intensity", color = SpideyGold)
-                Slider(value = intensity, onValueChange = { intensity = it }, valueRange = 0.3f..1f)
-                SettingSwitch("SpideyDashPip watch notifications", settings.spideyVoiceEnabled) {
-                    scope.launch { repo.setSpideyVoiceEnabled(it) }
+                NestSurface(modifier = Modifier.fillMaxWidth()) {
+                    NestSwitch("ThreadBox", settings.messagesEnabled) {
+                        scope.launch { repo.setMessagesEnabled(it) }
+                    }
+                    NestSwitch("Inbox Pulse", settings.mailEnabled) {
+                        scope.launch { repo.setMailEnabled(it) }
+                    }
+                    NestSwitch("SnapBooth", settings.cameraEnabled) {
+                        scope.launch { repo.setCameraEnabled(it) }
+                    }
                 }
-                SettingSwitch("ThreadBox module", settings.messagesEnabled) {
-                    scope.launch { repo.setMessagesEnabled(it) }
-                }
-                SettingSwitch("Inbox Pulse module", settings.mailEnabled) {
-                    scope.launch { repo.setMailEnabled(it) }
-                }
-                SettingSwitch("SnapBooth module", settings.cameraEnabled) {
-                    scope.launch { repo.setCameraEnabled(it) }
-                }
-                Spacer(Modifier.height(12.dp))
-                Button(
-                    onClick = {
-                        scope.launch {
-                            repo.setUserName(name)
-                            repo.setGeminiKey(geminiKey)
-                            repo.setThemeIntensity(intensity)
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("Save") }
-                Spacer(Modifier.height(8.dp))
-                OutlinedButton(
-                    onClick = {
-                        context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("Notification access") }
-                OutlinedButton(
-                    onClick = {
-                        context.startActivity(
-                            Intent(
-                                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                                Uri.parse("package:${context.packageName}"),
-                            ),
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("Overlay permission") }
-                OutlinedButton(
-                    onClick = {
-                        if (ContextCompat.checkSelfPermission(context, photoPerm) != PackageManager.PERMISSION_GRANTED) {
-                            photoLauncher.launch(photoPerm)
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("Photos permission · gallery peek") }
-                OutlinedButton(
+
+                Spacer(Modifier.height(18.dp))
+                VaPrimaryButton(
+                    text = "Start SpideyDashPip",
+                    icon = Icons.Default.Mic,
                     onClick = {
                         if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) !=
                             PackageManager.PERMISSION_GRANTED
                         ) {
                             micLauncher.launch(Manifest.permission.RECORD_AUDIO)
                         } else {
+                            SpideyOverlayService.stop(context)
                             SpideyOverlayService.start(context)
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text("Start SpideyDashPip") }
-                OutlinedButton(
-                    onClick = { SpideyOverlayService.stop(context) },
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("Wave goodbye · hide buddy") }
-                Spacer(Modifier.height(16.dp))
-                Text(AppCredits.ABOUT_LINE, color = SpideyGold, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                )
+                Spacer(Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    VaGhostButton("Today", onClick = onOpenToday)
+                    VaGhostButton("Permissions", onClick = onOpenPermissions)
+                }
+                Spacer(Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    VaGhostButton("Notify access") {
+                        context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                    }
+                    VaGhostButton("Overlay") {
+                        context.startActivity(
+                            Intent(
+                                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                Uri.parse("package:${context.packageName}"),
+                            ),
+                        )
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    VaGhostButton("Photos") {
+                        if (ContextCompat.checkSelfPermission(context, photoPerm) != PackageManager.PERMISSION_GRANTED) {
+                            photoLauncher.launch(photoPerm)
+                        }
+                    }
+                    VaGhostButton("Hide buddy") { SpideyOverlayService.stop(context) }
+                }
+
+                Spacer(Modifier.height(22.dp))
+                Text(AppCredits.ABOUT_LINE, color = VaMuted, fontFamily = Outfit, fontSize = 12.sp)
+                Spacer(Modifier.height(8.dp))
+                VaSectionLabel("Coming next")
                 Text(
-                    "SpideyDashPip · talks mail & WhatsApp · music ticker · listen by name.\nAdaptive for OnePlus · Samsung · Oppo · Vivo · Realme · Redmi · Xiaomi · Poco · Lava.",
-                    color = SpideyWeb.copy(alpha = 0.65f),
-                    fontSize = 12.sp,
+                    "Knowledge · Calendar · Vision · Plugins",
+                    color = VaMuted,
+                    fontFamily = Outfit,
+                    fontSize = 13.sp,
                 )
             }
         }
@@ -194,12 +249,18 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun SettingSwitch(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+private fun NestSwitch(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
     Row(
-        Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label, color = SpideyWeb, modifier = Modifier.weight(1f))
-        Switch(checked = checked, onCheckedChange = onChange)
+        Text(label, color = VaInk, fontFamily = Outfit, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+        Switch(
+            checked = checked,
+            onCheckedChange = onChange,
+            colors = SwitchDefaults.colors(checkedTrackColor = VaMint, checkedThumbColor = Color.White),
+        )
     }
 }

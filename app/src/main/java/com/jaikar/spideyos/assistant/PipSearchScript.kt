@@ -42,9 +42,9 @@ object PipSearchScript {
             Option("modules", "WeaveHome modules", "ThreadBox · Inbox · SnapBooth · Nest"),
             Option("music", "Now playing · earbuds", "Spotify · YT Music · Amazon · TikTok…"),
             Option("wave", "Say hi / wave", "Friendly buddy wave"),
-            Option("listen", "Listen to me", "Speak — I answer with your name"),
+            Option("listen", "Listen to me", "Or just say Spidy out loud"),
             Option("suggest", "Suggest something", "Helpful tip for right now"),
-            Option("tips", "How I help", "Talk · walk · wake · sleep · find anything"),
+            Option("tips", "How I help", "Say Spidy · open apps · mail · on-device"),
             Option("hide", "Wave goodbye", "Hide SpideyDashPip"),
         ),
     )
@@ -77,13 +77,12 @@ object PipSearchScript {
 
     fun tips(): Pane.Tip = Pane.Tip(
         lines = listOf(
-            "I’m your Rover-style Search Companion on the real phone OS.",
-            "Tap me → pick what to search → I dig, then open it.",
-            "I walk, wave, sleep when the screen turns off, wake on unlock.",
-            "I speak mail & WhatsApp / Instagram alerts out loud with your name.",
-            "Music: Spotify, YouTube Music, Amazon Music, TikTok, Instagram…",
-            "Say Listen — I hear you and answer using your name.",
-            "Drag me anywhere. Transparent buddy — no grey box. No cloud AI required.",
+            "Say “Spidy” anytime — I wake up and listen (on this phone only).",
+            "Then: open apps · open WhatsApp · open Gmail · mail · messages.",
+            "I tell you: here you got mail / messages — memory stays on your phone.",
+            "Privacy chain: no location · no phone numbers · no hidden/sensitive files.",
+            "Tap me for the menu. I walk on your real home screen — not a theme.",
+            "Mic + notification access stay local. End-to-end on your device.",
         ),
     )
 }

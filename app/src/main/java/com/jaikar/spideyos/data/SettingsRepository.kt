@@ -21,6 +21,11 @@ data class SpideySettings(
     val cameraEnabled: Boolean = true,
     val spideyVoiceEnabled: Boolean = true,
     val buddyEnabled: Boolean = false,
+    val routinesEnabled: Boolean = true,
+    val digestEnabled: Boolean = true,
+    val memoryEnabled: Boolean = true,
+    val automationEnabled: Boolean = true,
+    val meetingsEnabled: Boolean = true,
 )
 
 class SettingsRepository(private val context: Context) {
@@ -34,6 +39,11 @@ class SettingsRepository(private val context: Context) {
         val CAMERA = booleanPreferencesKey("camera_enabled")
         val VOICE = booleanPreferencesKey("pip_watch_enabled")
         val BUDDY = booleanPreferencesKey("spideydashpip_enabled")
+        val ROUTINES = booleanPreferencesKey("spidy_routines")
+        val DIGEST = booleanPreferencesKey("spidy_digest")
+        val MEMORY = booleanPreferencesKey("spidy_memory")
+        val AUTOMATION = booleanPreferencesKey("spidy_automation")
+        val MEETINGS = booleanPreferencesKey("spidy_meetings")
     }
 
     val settings: Flow<SpideySettings> = context.dataStore.data.map { p ->
@@ -47,6 +57,11 @@ class SettingsRepository(private val context: Context) {
             cameraEnabled = p[Keys.CAMERA] ?: true,
             spideyVoiceEnabled = p[Keys.VOICE] ?: true,
             buddyEnabled = p[Keys.BUDDY] ?: false,
+            routinesEnabled = p[Keys.ROUTINES] ?: true,
+            digestEnabled = p[Keys.DIGEST] ?: true,
+            memoryEnabled = p[Keys.MEMORY] ?: true,
+            automationEnabled = p[Keys.AUTOMATION] ?: true,
+            meetingsEnabled = p[Keys.MEETINGS] ?: true,
         )
     }
 
@@ -85,5 +100,24 @@ class SettingsRepository(private val context: Context) {
     suspend fun setBuddyEnabled(enabled: Boolean) {
         context.dataStore.edit { it[Keys.BUDDY] = enabled }
     }
-}
 
+    suspend fun setRoutinesEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.ROUTINES] = enabled }
+    }
+
+    suspend fun setDigestEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.DIGEST] = enabled }
+    }
+
+    suspend fun setMemoryEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.MEMORY] = enabled }
+    }
+
+    suspend fun setAutomationEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.AUTOMATION] = enabled }
+    }
+
+    suspend fun setMeetingsEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[Keys.MEETINGS] = enabled }
+    }
+}

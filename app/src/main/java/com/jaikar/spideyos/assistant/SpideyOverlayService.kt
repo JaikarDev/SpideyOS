@@ -45,7 +45,11 @@ import com.jaikar.spideyos.R
 import com.jaikar.spideyos.SpideyApp
 import com.jaikar.spideyos.apps.AppCatalog
 import com.jaikar.spideyos.apps.InstalledApp
-import com.jaikar.spideyos.companion.DashCuteLines
+import android.Manifest
+import android.content.pm.PackageManager
+import com.jaikar.spideyos.companion.DashPrivacyGuard
+import com.jaikar.spideyos.companion.DashCommander
+import com.jaikar.spideyos.companion.DashEar
 import com.jaikar.spideyos.companion.DashEvent
 import com.jaikar.spideyos.companion.DashHit
 import com.jaikar.spideyos.companion.DashMediaHelper
@@ -55,11 +59,16 @@ import com.jaikar.spideyos.companion.DashSearchCatalog
 import com.jaikar.spideyos.companion.DashSearchKind
 import com.jaikar.spideyos.companion.DashSpeaker
 import com.jaikar.spideyos.companion.DashSuggestScript
-import com.jaikar.spideyos.companion.DashTopInfoBar
 import com.jaikar.spideyos.companion.DashVoice
-import com.jaikar.spideyos.companion.DashVoiceReply
+import com.jaikar.spideyos.companion.DashVoiceAction
 import com.jaikar.spideyos.companion.SpideyDashPipBus
 import com.jaikar.spideyos.companion.SpideyDashPipLifeReceiver
+import com.jaikar.spideyos.companion.spidy.SpidyActivityLog
+import com.jaikar.spideyos.companion.spidy.SpidyAutomation
+import com.jaikar.spideyos.companion.spidy.SpidyMeetings
+import com.jaikar.spideyos.companion.spidy.SpidyPersonality
+import com.jaikar.spideyos.companion.spidy.SpidyRoutines
+import com.jaikar.spideyos.assistant.GeminiBridge
 import com.jaikar.spideyos.sense.WeaveSense
 import com.jaikar.spideyos.ui.Routes
 import com.jaikar.spideyos.ui.companion.SpideyDashPipPanel
@@ -68,7 +77,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.coroutines.coroutineContext
@@ -87,11 +95,9 @@ class SpideyOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sav
 
     private var windowManager: WindowManager? = null
     private var buddyHost: DashOverlayHost? = null
-    private var topBar: DashTopInfoBar? = null
     private var menuView: ComposeView? = null
     private var menuParams: WindowManager.LayoutParams? = null
     private var lifeReceiver: BroadcastReceiver? = null
-    private var alertJob: Job? = null
 
     override val lifecycle: Lifecycle get() = lifecycleRegistry
     override val viewModelStore: ViewModelStore get() = store
@@ -111,9 +117,19 @@ class SpideyOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sav
     private var asleep by mutableStateOf(false)
     private var tapPulse by mutableIntStateOf(0)
     private var roamPausedUntil = 0L
+    private var routinesEnabled = true
+    private var digestEnabled = true
+    private var memoryEnabled = true
+    private var automationEnabled = true
+    private var meetingsEnabled = true
+    private var geminiKey: String = ""
+    private var lastMusicDanceTrack: String? = null
+    private var musicWasPlaying = false
+    private val gemini by lazy { GeminiBridge { geminiKey } }
 
     private lateinit var speaker: DashSpeaker
     private lateinit var voice: DashVoice
+    private var ear: DashEar? = null
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -124,8 +140,16 @@ class SpideyOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sav
         speaker = DashSpeaker(this)
         voice = DashVoice(
             context = this,
-            onResult = { heard -> replyToVoice(heard) },
-            onError = { line -> showTransientLine(line) },
+            onResult = { heard -> onProactiveTalk(heard) },
+            onError = { line -> say(line, 3_000) },
+        )
+        ear = DashEar(
+            context = this,
+            onWake = { heard -> onSpidyWake(heard) },
+            onCommand = { heard -> onProactiveTalk(heard) },
+            onStatus = { line ->
+                if (!asleep) buddyHost?.showSpeech(line, 2_200)
+            },
         )
         scope.launch { SpideyApp.instance.settings.setBuddyEnabled(true) }
         startAsForeground()
@@ -137,24 +161,26 @@ class SpideyOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sav
             startSuggestLoop()
             startEventCollector()
             startMusicWatcher()
-            scope.launch {
-                delay(900)
-                playGreeting()
-            }
+            startSpidyEar()
+            startCompanionRoutines()
+            startMeetingReminderLoop()
         }
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
     }
 
     private fun startAsForeground() {
-        val notification = buildNotification("${AppCredits.MASCOT_NAME} is awake on your home")
+        val notification = buildNotification("${AppCredits.MASCOT_NAME} · say Spidy")
+        val micGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) ==
+            PackageManager.PERMISSION_GRANTED
         if (Build.VERSION.SDK_INT >= 34) {
-            ServiceCompat.startForeground(
-                this,
-                NOTIF_ID,
-                notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE,
-            )
+            val types = if (micGranted) {
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE or
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE
+            } else {
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+            }
+            ServiceCompat.startForeground(this, NOTIF_ID, notification, types)
         } else {
             startForeground(NOTIF_ID, notification)
         }
@@ -164,16 +190,27 @@ class SpideyOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sav
         val manager = getSystemService(WINDOW_SERVICE) as WindowManager
         windowManager = manager
         apps = AppCatalog.loadLaunchableApps(packageManager)
-        topBar = DashTopInfoBar(this, manager).also { it.attach() }
         buddyHost = DashOverlayHost(
             context = this,
             windowManager = manager,
             onTap = ::onBuddyTap,
             onDrag = ::onBuddyDrag,
+            onLongPress = ::onBuddyLongPress,
         ).also { it.attach() }
         scope.launch {
-            userName = SpideyApp.instance.settings.settings.first().userName.ifBlank { "friend" }
-            pane = PipSearchScript.home(userName)
+            SpideyApp.instance.settings.settings.collect { s ->
+                userName = s.userName.ifBlank { "friend" }
+                routinesEnabled = s.routinesEnabled
+                digestEnabled = s.digestEnabled
+                memoryEnabled = s.memoryEnabled
+                automationEnabled = s.automationEnabled
+                meetingsEnabled = s.meetingsEnabled
+                geminiKey = s.geminiApiKey
+                pane = PipSearchScript.home(userName)
+            }
+        }
+        scope.launch {
+            delay(400)
             notifyForeground("Hey $userName — ${AppCredits.MASCOT_NAME} says hi.")
         }
     }
@@ -217,22 +254,17 @@ class SpideyOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sav
         isWalking = false
         buddyHost?.setWalking(false)
 
+        // Tap only activates / closes the menu — no talking.
         if (!expanded) {
-            mood = DashMood.TapReact(DashCuteLines.tap())
-            scope.launch {
-                delay(380)
-                expanded = true
-                pane = PipSearchScript.home(userName)
-                mood = DashMood.Greeting("What can I find for you?")
-                attachMenu()
-            }
+            mood = DashMood.Roaming
+            expanded = true
+            pane = PipSearchScript.home(userName)
+            attachMenu()
+            ear?.nudge()
         } else {
             collapseMenu()
-            mood = DashMood.TapReact("Okay! I’ll keep roaming~")
-            scope.launch {
-                delay(1_100)
-                if (mood is DashMood.TapReact) mood = DashMood.Roaming
-            }
+            mood = DashMood.Roaming
+            ear?.nudge()
         }
     }
 
@@ -369,12 +401,8 @@ class SpideyOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sav
             while (isActive) {
                 delay(Random.nextLong(2_400, 4_800))
                 if (asleep || expanded || userDragging || System.currentTimeMillis() < roamPausedUntil) continue
-                if (mood !is DashMood.Roaming && mood !is DashMood.Walking && mood !is DashMood.MusicListen && mood !is DashMood.Suggest) continue
-                if (mood !is DashMood.MusicListen && Random.nextFloat() < 0.18f) {
-                    playGreeting()
-                } else {
-                    roamStep()
-                }
+                if (mood !is DashMood.Roaming && mood !is DashMood.Walking && mood !is DashMood.MusicListen) continue
+                roamStep()
             }
         }
     }
@@ -407,14 +435,7 @@ class SpideyOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sav
     }
 
     private fun startSuggestLoop() {
-        scope.launch {
-            while (isActive) {
-                delay(Random.nextLong(45_000, 90_000))
-                if (!asleep && !expanded && !userDragging && mood !is DashMood.MailPickup && mood !is DashMood.MessagePickup) {
-                    showSuggestion()
-                }
-            }
-        }
+        // Quiet companion — no random chatter. Speaks only for mail/messages or Listen answers.
     }
 
     private fun startEventCollector() {
@@ -424,12 +445,12 @@ class SpideyOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sav
                     is DashEvent.Mail -> if (!asleep) showMail(event)
                     is DashEvent.Message -> if (!asleep) showMessage(event)
                     DashEvent.CameraCaptured -> if (!asleep) showCamera()
-                    DashEvent.WaveHi -> if (!asleep) playGreeting()
+                    DashEvent.WaveHi -> Unit // silent — no talk on wave
                     DashEvent.OpenGallery -> if (!asleep) showGallery()
                     DashEvent.OpenMusic -> if (!asleep) showMusic()
                     DashEvent.WakeUp -> goWake()
                     DashEvent.GoSleep -> goSleep()
-                    DashEvent.SuggestNow -> if (!asleep) showSuggestion()
+                    DashEvent.SuggestNow -> Unit
                     DashEvent.StartListen -> if (!asleep) startListening()
                 }
             }
@@ -441,46 +462,275 @@ class SpideyOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sav
             while (isActive) {
                 delay(2_500)
                 val nowPlaying = DashMediaHelper.nowPlayingInfo(this@SpideyOverlayService)
-                musicPlaying = DashMediaHelper.activeController(this@SpideyOverlayService)
+                val playing = DashMediaHelper.activeController(this@SpideyOverlayService)
                     ?.playbackState
                     ?.state == PlaybackState.STATE_PLAYING
-                if (nowPlaying != null && musicPlaying) {
-                    showNowPlaying(nowPlaying.appLabel, nowPlaying.title, nowPlaying.artist)
-                } else if (alertJob?.isActive != true) {
-                    topBar?.hide()
-                }
+                musicPlaying = playing
                 if (mood is DashMood.MusicListen && nowPlaying != null) {
                     mood = DashMood.MusicListen((mood as DashMood.MusicListen).line, nowPlaying.title, nowPlaying.artist)
+                    if (expanded) refreshMenuLayout()
+                }
+                // Dance personality when music starts or track changes (bubble; speak lightly once).
+                val trackKey = nowPlaying?.title
+                if (!asleep && playing && ( !musicWasPlaying || trackKey != lastMusicDanceTrack)) {
+                    lastMusicDanceTrack = trackKey
+                    val line = SpidyPersonality.dance(userName, trackKey)
+                    mood = DashMood.MusicListen(line, nowPlaying?.title, nowPlaying?.artist)
+                    buddyHost?.showSpeech(line, 3_200)
+                    if (!musicWasPlaying) {
+                        SpidyActivityLog.append(this@SpideyOverlayService, "dance", trackKey ?: "music")
+                    }
+                }
+                if (!playing) {
+                    lastMusicDanceTrack = null
+                }
+                musicWasPlaying = playing
+            }
+        }
+    }
+
+    private fun startCompanionRoutines() {
+        scope.launch {
+            delay(2_800)
+            maybeMorningRoutine(fromUnlock = false)
+        }
+        scope.launch {
+            while (isActive) {
+                delay(12 * 60_000L)
+                maybeNightRoutine()
+            }
+        }
+    }
+
+    private fun maybeMorningRoutine(fromUnlock: Boolean) {
+        if (asleep) return
+        if (!SpidyRoutines.shouldSpeakMorning(this, routinesEnabled)) return
+        val line = SpidyPersonality.morning(userName)
+        SpidyActivityLog.append(this, "routine", if (fromUnlock) "morning_unlock" else "morning")
+        mood = DashMood.Greeting(line)
+        say(line, 5_000)
+        scope.launch {
+            delay(5_200)
+            if (mood is DashMood.Greeting) mood = DashMood.Roaming
+        }
+    }
+
+    private fun maybeNightRoutine() {
+        if (asleep) return
+        if (System.currentTimeMillis() < roamPausedUntil) return
+        if (!SpidyRoutines.shouldSpeakNight(this, routinesEnabled)) return
+        val line = SpidyPersonality.night(userName)
+        SpidyActivityLog.append(this, "routine", "night")
+        mood = DashMood.Suggest(line)
+        say(line, 4_800)
+        scope.launch {
+            delay(5_000)
+            if (mood is DashMood.Suggest) mood = DashMood.Roaming
+        }
+    }
+
+    /** Speak aloud + bubble above SpideyDashPip only (no top banner). */
+    private fun say(line: String, holdMs: Long = 5_200) {
+        val text = DashPrivacyGuard.safeSpeakLine(line.trim())
+        if (text.isEmpty()) return
+        ear?.pauseForSpeak(holdMs.coerceAtLeast(2_800))
+        speaker.speak(text)
+        buddyHost?.showSpeech(text, holdMs)
+    }
+
+    private fun startSpidyEar() {
+        val granted = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) ==
+            PackageManager.PERMISSION_GRANTED
+        if (!granted) {
+            notifyForeground("Mic needed — Nest → Start SpideyDashPip to allow voice")
+            buddyHost?.showSpeech("Allow mic in Nest to hear you", 4_000)
+            return
+        }
+        // Upgrade FGS to include microphone so OEM allows continuous listen.
+        startAsForeground()
+        ear?.stop()
+        ear?.start()
+        notifyForeground("Ears up — say Hey Spidy (or long-press me)")
+    }
+
+    private fun onBuddyLongPress() {
+        if (asleep) {
+            SpideyDashPipBus.emit(DashEvent.WakeUp)
+        }
+        WeaveSense.spidySense(this)
+        buddyHost?.reactSpidySense()
+        collapseMenu()
+        mood = DashMood.Listening("Listening — talk now")
+        buddyHost?.showSpeech("Listening — talk now", 2_500)
+        startSpidyEar()
+        ear?.listenNow()
+    }
+
+    /** Any speech — show Spidy react icon + reply (proactive). */
+    private fun onProactiveTalk(heard: String) {
+        if (asleep) {
+            asleep = false
+            buddyHost?.setSleeping(false)
+        }
+        WeaveSense.spidySense(this)
+        WeaveSense.wag(this)
+        roamPausedUntil = System.currentTimeMillis() + 10_000
+        buddyHost?.pulseTap()
+        buddyHost?.reactSpidySense()
+        handleVoiceCommand(heard)
+    }
+
+    private fun onSpidyWake(heard: String = "spidy") {
+        if (asleep) {
+            asleep = false
+            buddyHost?.setSleeping(false)
+        }
+        WeaveSense.spidySense(this)
+        WeaveSense.wag(this)
+        roamPausedUntil = System.currentTimeMillis() + 12_000
+        buddyHost?.pulseTap()
+        buddyHost?.reactSpidySense()
+        val line = "Hey $userName! How can I help you?"
+        mood = DashMood.Listening(line)
+        say(line, 3_400)
+        scope.launch {
+            delay(3_500)
+            if (!asleep) ear?.enterCommandMode()
+        }
+    }
+
+    private fun handleVoiceCommand(heard: String) {
+        val action = DashCommander.parse(
+            context = this,
+            userName = userName,
+            heard = heard,
+            apps = apps,
+            memoryEnabled = memoryEnabled,
+            digestEnabled = digestEnabled,
+            automationEnabled = automationEnabled,
+        )
+        roamPausedUntil = System.currentTimeMillis() + 12_000
+        when (action) {
+            is DashVoiceAction.SpeakOnly -> {
+                mood = DashMood.Listening(action.line)
+                say(action.line, 5_500)
+            }
+            is DashVoiceAction.SmartHelp -> handleSmartHelp(action.query)
+            is DashVoiceAction.OpenApp -> {
+                mood = DashMood.Found(action.line)
+                say(action.line, 3_200)
+                runCatching {
+                    packageManager.getLaunchIntentForPackage(action.packageName)?.let {
+                        it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(it)
+                    }
+                }
+            }
+            is DashVoiceAction.OpenAppsMenu -> {
+                say(action.line, 2_800)
+                expanded = true
+                pane = PipSearchScript.home(userName)
+                attachMenu()
+                openSearch(DashSearchKind.APPS)
+            }
+            is DashVoiceAction.OpenSearch -> {
+                say(action.line, 2_800)
+                expanded = true
+                attachMenu()
+                pane = PipSearchScript.searchPane(action.kind)
+                searchQuery = action.query
+                mood = DashMood.Searching("Digging for “${action.query}”…")
+                refreshSearchHits()
+                refreshMenuLayout()
+            }
+            is DashVoiceAction.OpenMusic -> {
+                say(action.line, 2_800)
+                collapseMenu()
+                showMusic()
+            }
+            is DashVoiceAction.OpenGallery -> {
+                say(action.line, 2_800)
+                collapseMenu()
+                showGallery()
+            }
+            is DashVoiceAction.Sleep -> {
+                say(action.line, 2_500)
+                scope.launch {
+                    delay(1_200)
+                    goSleep()
+                }
+            }
+            is DashVoiceAction.Hide -> {
+                say(action.line, 1_800)
+                scope.launch {
+                    SpideyApp.instance.settings.setBuddyEnabled(false)
+                    delay(1_000)
+                    stop(this@SpideyOverlayService)
+                }
+            }
+        }
+        scope.launch {
+            delay(5_000)
+            if (mood is DashMood.Listening || mood is DashMood.Found) mood = DashMood.Roaming
+        }
+    }
+
+    private fun handleSmartHelp(query: String) {
+        mood = DashMood.Listening("Thinking…")
+        buddyHost?.showSpeech("On it…", 2_000)
+        scope.launch {
+            val online = runCatching {
+                if (gemini.hasKey()) gemini.chat(userName, emptyList(), query) else null
+            }.getOrNull()?.let { raw ->
+                raw.replace(Regex("\\[\\[ACTION:[A-Z_]+]]"), "").trim()
+            }
+            if (!online.isNullOrBlank()) {
+                SpidyActivityLog.append(this@SpideyOverlayService, "internet_reply", query.take(40))
+                mood = DashMood.Listening(online)
+                say(online, 6_500)
+                return@launch
+            }
+            // No Gemini key — open internet search for whatever they said.
+            when (val r = SpidyAutomation.openWebSearch(this@SpideyOverlayService, query)) {
+                is SpidyAutomation.Result.SpokeAndDid -> {
+                    mood = DashMood.Found(r.line)
+                    say("I opened that on the internet for you, $userName.", 4_200)
+                }
+                is SpidyAutomation.Result.Spoke -> {
+                    mood = DashMood.Listening(r.line)
+                    say(
+                        "Add a Gemini key in Nest for spoken answers, $userName — or say open WhatsApp, meetings, or digest.",
+                        5_500,
+                    )
                 }
             }
         }
     }
 
-    private fun showNowPlaying(app: String, title: String?, artist: String?) {
-        val track = listOfNotNull(title, artist).joinToString(" — ").ifBlank { "now playing" }
-        topBar?.show("♪ $app · $track")
-    }
-
-    private fun showTransientLine(line: String) {
-        alertJob?.cancel()
-        topBar?.show(line)
-        alertJob = scope.launch {
-            delay(5_000)
-            val now = DashMediaHelper.nowPlayingInfo(this@SpideyOverlayService)
-            val playing = DashMediaHelper.activeController(this@SpideyOverlayService)
-                ?.playbackState
-                ?.state == PlaybackState.STATE_PLAYING
-            if (now != null && playing) showNowPlaying(now.appLabel, now.title, now.artist) else topBar?.hide()
+    private fun startMeetingReminderLoop() {
+        scope.launch {
+            while (isActive) {
+                delay(45_000)
+                if (asleep || !meetingsEnabled) continue
+                if (!SpidyMeetings.hasPermission(this@SpideyOverlayService)) continue
+                SpidyMeetings.dueReminders(this@SpideyOverlayService).forEach { m ->
+                    SpidyMeetings.markReminded(this@SpideyOverlayService, m)
+                    val line = SpidyMeetings.remindLine(userName, m)
+                    mood = DashMood.Suggest(line)
+                    say(line, 5_500)
+                    delay(6_000)
+                }
+            }
         }
     }
 
+    private fun showTransientLine(line: String) {
+        buddyHost?.showSpeech(line.trim(), 4_000)
+    }
+
     private suspend fun playGreeting() {
-        val line = "Hi $userName! SpideyDashPip checking in."
-        WeaveSense.wag(this)
-        speaker.speak(line)
-        mood = DashMood.Greeting(line)
-        showTransientLine(line)
-        delay(3_200)
+        mood = DashMood.Greeting("Ready when you are, $userName.")
+        delay(400)
         if (mood is DashMood.Greeting) mood = DashMood.Roaming
     }
 
@@ -490,8 +740,7 @@ class SpideyOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sav
             roamPausedUntil = System.currentTimeMillis() + 8_000
             collapseMenu()
             mood = DashMood.MailPickup(event.speak)
-            speaker.speak(event.speak)
-            showTransientLine(event.speak)
+            say(event.speak, 5_500)
             delay(5_500)
             if (mood is DashMood.MailPickup) mood = DashMood.Roaming
         }
@@ -503,8 +752,7 @@ class SpideyOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sav
             roamPausedUntil = System.currentTimeMillis() + 8_000
             collapseMenu()
             mood = DashMood.MessagePickup(event.speak)
-            speaker.speak(event.speak)
-            showTransientLine(event.speak)
+            say(event.speak, 5_500)
             delay(5_500)
             if (mood is DashMood.MessagePickup) mood = DashMood.Roaming
         }
@@ -512,21 +760,16 @@ class SpideyOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sav
 
     private fun startListening() {
         collapseMenu()
-        val line = "I'm listening, $userName."
+        val line = "Hey $userName! How can I help you?"
         mood = DashMood.Listening(line)
-        speaker.speak(line)
-        showTransientLine(line)
-        voice.start()
-    }
-
-    private fun replyToVoice(heard: String) {
-        val reply = DashVoiceReply.reply(userName, heard)
-        mood = DashMood.Listening(reply)
-        speaker.speak(reply)
-        showTransientLine(reply)
+        say(line, 3_500)
+        ear?.enterCommandMode()
+        // Also one-shot listen as backup if ear is paused for TTS.
         scope.launch {
-            delay(4_000)
-            if (mood is DashMood.Listening) mood = DashMood.Roaming
+            delay(3_600)
+            ear?.enterCommandMode()
+            delay(200)
+            voice.start()
         }
     }
 
@@ -535,9 +778,11 @@ class SpideyOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sav
         isWalking = false
         buddyHost?.setWalking(false)
         buddyHost?.setSleeping(true)
+        buddyHost?.hideSpeech()
+        ear?.stop()
         collapseMenu()
         mood = DashMood.Sleeping(DashSuggestScript.sleepLine(userName))
-        notifyForeground("Sleeping… unlock to wake SpideyDashPip")
+        notifyForeground("Sleeping… say Spidy or unlock to wake")
     }
 
     private fun goWake() {
@@ -545,25 +790,22 @@ class SpideyOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sav
             asleep = false
             buddyHost?.setSleeping(false)
             WeaveSense.wag(this@SpideyOverlayService)
-            val line = DashSuggestScript.wakeLine(userName)
-            mood = DashMood.Greeting(line)
-            speaker.speak(line)
-            showTransientLine(line)
-            notifyForeground("Awake on your phone's home screen")
-            delay(3_400)
-            if (mood is DashMood.Greeting) mood = DashMood.Roaming
+            mood = DashMood.Roaming
+            startSpidyEar()
+            ear?.nudge()
+            notifyForeground("Awake — say Hey Spidy")
             delay(1_200)
-            if (!asleep) showSuggestion()
+            maybeMorningRoutine(fromUnlock = true)
         }
     }
 
     private suspend fun showSuggestion() {
-        roamPausedUntil = System.currentTimeMillis() + 7_000
+        roamPausedUntil = System.currentTimeMillis() + 4_000
         isWalking = false
         buddyHost?.setWalking(false)
         mood = DashMood.Suggest(DashSuggestScript.forNow(userName))
-        showTransientLine((mood as DashMood.Suggest).line)
-        delay(5_800)
+        // Quiet — no speak unless user asked via Listen.
+        delay(1_200)
         if (mood is DashMood.Suggest) mood = DashMood.Roaming
     }
 
@@ -571,7 +813,6 @@ class SpideyOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sav
         scope.launch {
             WeaveSense.sense(this@SpideyOverlayService)
             mood = DashMood.CameraSnap("Nice shot! Holding your gallery…")
-            showTransientLine((mood as DashMood.CameraSnap).line)
             delay(1_200)
             showGallery()
         }
@@ -584,7 +825,7 @@ class SpideyOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sav
                 if (photo != null) "Looking at your photos with you." else "Gallery peek needs photo permission — open Nest to allow.",
                 photo,
             )
-            if (expanded) refreshMenuLayout() else showTransientLine((mood as DashMood.GalleryPeek).line)
+            if (expanded) refreshMenuLayout()
             delay(6_500)
             if (mood is DashMood.GalleryPeek) mood = DashMood.Roaming
         }
@@ -594,7 +835,7 @@ class SpideyOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sav
         refreshMusicMood()
         val (title, artist) = DashMediaHelper.nowPlaying(this)
         mood = DashMood.MusicListen("Earbuds on — tap prev / play / next.", title, artist)
-        if (expanded) refreshMenuLayout() else showTransientLine((mood as DashMood.MusicListen).line)
+        if (expanded) refreshMenuLayout()
     }
 
     private fun refreshMusicMood() {
@@ -611,7 +852,12 @@ class SpideyOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sav
             "listen" -> startListening()
             "wave" -> {
                 collapseMenu()
-                scope.launch { playGreeting() }
+                scope.launch {
+                    buddyHost?.pulseTap()
+                    mood = DashMood.TapReact("wave")
+                    delay(900)
+                    if (mood is DashMood.TapReact) mood = DashMood.Roaming
+                }
             }
             "suggest" -> {
                 collapseMenu()
@@ -641,11 +887,10 @@ class SpideyOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sav
                 refreshMenuLayout()
             }
             "hide" -> {
-                val line = "Wave off — see you later, $userName!"
-                speaker.speak(line)
+                buddyHost?.hideSpeech()
                 scope.launch {
                     SpideyApp.instance.settings.setBuddyEnabled(false)
-                    delay(1_200)
+                    delay(200)
                     stop(this@SpideyOverlayService)
                 }
             }
@@ -741,12 +986,11 @@ class SpideyOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sav
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
         lifeReceiver?.let { runCatching { unregisterReceiver(it) } }
         lifeReceiver = null
-        alertJob?.cancel()
+        ear?.stop()
+        ear = null
         collapseMenu()
         buddyHost?.detach()
         buddyHost = null
-        topBar?.detach()
-        topBar = null
         voice.stop()
         speaker.shutdown()
         store.clear()
@@ -758,9 +1002,43 @@ class SpideyOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sav
         private const val NOTIF_ID = 1701
 
         fun start(context: Context) {
-            if (!Settings.canDrawOverlays(context)) return
+            if (!Settings.canDrawOverlays(context)) {
+                android.widget.Toast.makeText(
+                    context,
+                    "Allow overlay first — Nest → Overlay",
+                    android.widget.Toast.LENGTH_LONG,
+                ).show()
+                runCatching {
+                    context.startActivity(
+                        Intent(
+                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                            android.net.Uri.parse("package:${context.packageName}"),
+                        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                    )
+                }
+                return
+            }
+            val micOk = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
+                PackageManager.PERMISSION_GRANTED
+            if (!micOk) {
+                android.widget.Toast.makeText(
+                    context,
+                    "Mic needed for voice — allow microphone, then Start again",
+                    android.widget.Toast.LENGTH_LONG,
+                ).show()
+            }
             val intent = Intent(context, SpideyOverlayService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) context.startForegroundService(intent) else context.startService(intent)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
+            android.widget.Toast.makeText(
+                context,
+                if (micOk) "Spidy starting — say Hey Spidy or long-press him"
+                else "Buddy up without voice until mic is allowed",
+                android.widget.Toast.LENGTH_SHORT,
+            ).show()
         }
 
         fun stop(context: Context) {
@@ -768,6 +1046,7 @@ class SpideyOverlayService : Service(), LifecycleOwner, ViewModelStoreOwner, Sav
                 runCatching { SpideyApp.instance.settings.setBuddyEnabled(false) }
             }
             context.stopService(Intent(context, SpideyOverlayService::class.java))
+            android.widget.Toast.makeText(context, "Spidy hidden", android.widget.Toast.LENGTH_SHORT).show()
         }
     }
 }

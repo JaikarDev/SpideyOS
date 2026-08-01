@@ -54,7 +54,10 @@ import com.jaikar.spideyos.ui.theme.SpideyGold
 import com.jaikar.spideyos.ui.theme.SpideyNavy
 import com.jaikar.spideyos.ui.theme.SpideyRed
 import com.jaikar.spideyos.ui.theme.SpideyWeb
-import com.jaikar.spideyos.ui.theme.WebBackground
+import com.jaikar.spideyos.ui.theme.VaAtmosphere
+import com.jaikar.spideyos.ui.theme.VaInk
+import com.jaikar.spideyos.ui.theme.VaMintDeep
+import com.jaikar.spideyos.ui.theme.VaMuted
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -123,16 +126,16 @@ fun WebMessagesScreen(
     }
 
     Box(Modifier.fillMaxSize()) {
-        WebBackground(intensity = settings.themeIntensity * 0.95f)
+        VaAtmosphere()
         AdaptiveContent {
             Column(Modifier.fillMaxSize()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = SpideyWeb)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null, tint = VaInk)
                     }
                     Column(Modifier.weight(1f)) {
-                        Text("ThreadBox", color = SpideyWeb, fontWeight = FontWeight.Bold, fontSize = 22.sp)
-                        Text("Message launcher · web-shoot send · WeaveSense", color = SpideyGold, fontSize = 12.sp)
+                        Text("ThreadBox", color = VaInk, fontWeight = FontWeight.Bold, fontSize = 22.sp)
+                        Text("Message launcher · web-shoot send · WeaveSense", color = VaMuted, fontSize = 12.sp)
                     }
                     Box(
                         Modifier

@@ -19,6 +19,8 @@ import com.jaikar.spideyos.ui.motion.weaveExit
 import com.jaikar.spideyos.ui.motion.weavePopEnter
 import com.jaikar.spideyos.ui.motion.weavePopExit
 import com.jaikar.spideyos.ui.onboarding.OnboardingScreen
+import com.jaikar.spideyos.ui.companion.PermissionDashboardScreen
+import com.jaikar.spideyos.ui.companion.TodayScreen
 import com.jaikar.spideyos.ui.settings.SettingsScreen
 import com.jaikar.spideyos.ui.vibe.VibeSplashScreen
 
@@ -31,6 +33,8 @@ object Routes {
     const val MAIL = "mail"
     const val CAMERA = "camera"
     const val SETTINGS = "settings"
+    const val TODAY = "today"
+    const val PERMISSIONS = "permissions"
 }
 
 @Composable
@@ -55,6 +59,8 @@ fun SpideyNavHost(
             Routes.MAIL,
             Routes.CAMERA,
             Routes.SETTINGS,
+            Routes.TODAY,
+            Routes.PERMISSIONS,
             Routes.LAUNCHER,
         )
         if (route in allowed) {
@@ -104,6 +110,7 @@ fun SpideyNavHost(
                 onOpenMail = { nav.navigate(Routes.MAIL) },
                 onOpenCamera = { nav.navigate(Routes.CAMERA) },
                 onOpenSettings = { nav.navigate(Routes.SETTINGS) },
+                onOpenToday = { nav.navigate(Routes.TODAY) },
             )
         }
         composable(Routes.ASSISTANT) {
@@ -125,7 +132,25 @@ fun SpideyNavHost(
             SnapBoothScreen(settings = settings, onBack = { nav.popBackStack() })
         }
         composable(Routes.SETTINGS) {
-            SettingsScreen(settings = settings, onBack = { nav.popBackStack() })
+            SettingsScreen(
+                settings = settings,
+                onBack = { nav.popBackStack() },
+                onOpenToday = { nav.navigate(Routes.TODAY) },
+                onOpenPermissions = { nav.navigate(Routes.PERMISSIONS) },
+            )
+        }
+        composable(Routes.TODAY) {
+            TodayScreen(
+                settings = settings,
+                onBack = { nav.popBackStack() },
+                onOpenPermissions = { nav.navigate(Routes.PERMISSIONS) },
+            )
+        }
+        composable(Routes.PERMISSIONS) {
+            PermissionDashboardScreen(
+                settings = settings,
+                onBack = { nav.popBackStack() },
+            )
         }
     }
 }

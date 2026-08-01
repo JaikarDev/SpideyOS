@@ -11,6 +11,8 @@ import com.jaikar.spideyos.R
 import com.jaikar.spideyos.SpideyApp
 import com.jaikar.spideyos.companion.DashEvent
 import com.jaikar.spideyos.companion.DashNotifyApps
+import com.jaikar.spideyos.companion.DashPrivacyGuard
+import com.jaikar.spideyos.companion.DashPulseMemory
 import com.jaikar.spideyos.companion.SpideyDashPipBus
 import com.jaikar.spideyos.sense.WeaveSense
 import kotlinx.coroutines.CoroutineScope
@@ -31,8 +33,8 @@ class SpideyNotificationListener : NotificationListenerService() {
             if (!settings.spideyVoiceEnabled) return@launch
 
             val extras = sbn.notification.extras
-            val title = extras?.getCharSequence("android.title")?.toString().orEmpty()
-            val text = extras?.getCharSequence("android.text")?.toString().orEmpty()
+            val title = DashPrivacyGuard.redactPii(extras?.getCharSequence("android.title")?.toString())
+            val text = DashPrivacyGuard.redactPii(extras?.getCharSequence("android.text")?.toString())
             val pkg = sbn.packageName.orEmpty()
             val kind = DashNotifyApps.classify(pkg) ?: run {
                 if (title.contains("mail", true) || text.contains("mail", true)) {
@@ -41,6 +43,12 @@ class SpideyNotificationListener : NotificationListenerService() {
             } ?: return@launch
 
             val speak = DashNotifyApps.speakLine(settings.userName, kind, title.ifBlank { null })
+            DashPulseMemory.remember(
+                context = this@SpideyNotificationListener,
+                type = if (kind.type == DashNotifyApps.Type.MAIL) "mail" else "message",
+                app = kind.appName,
+                from = title.ifBlank { null },
+            )
             when (kind.type) {
                 DashNotifyApps.Type.MAIL ->
                     SpideyDashPipBus.emit(DashEvent.Mail(from = title.ifBlank { null }, speak = speak))

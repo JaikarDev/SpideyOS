@@ -6,45 +6,87 @@ import android.content.Context
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.graphics.drawable.ColorDrawable
+import android.graphics.drawable.GradientDrawable
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import android.view.animation.AccelerateDecelerateInterpolator
+import android.view.animation.OvershootInterpolator
 import android.widget.FrameLayout
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.TextView
 import com.jaikar.spideyos.R
 import kotlin.math.abs
 
 /**
- * Native transparent overlay host — ImageView only (no Compose plate / grey box).
+ * Native transparent overlay host — ImageView buddy + speech bubble above him (no Compose plate).
  */
 class DashOverlayHost(
     private val context: Context,
     private val windowManager: WindowManager,
     private val onTap: () -> Unit,
     private val onDrag: (dx: Float, dy: Float) -> Unit,
+    private val onLongPress: () -> Unit = {},
 ) {
     private val density = context.resources.displayMetrics.density
-    val root: FrameLayout = FrameLayout(context).apply {
+    private val characterSize = (100 * density).toInt()
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var hideBubbleRunnable: Runnable? = null
+    private var bubbleLiftPx = 0
+    private var longPressRunnable: Runnable? = null
+    private var longPressFired = false
+
+    val root: LinearLayout = LinearLayout(context).apply {
+        orientation = LinearLayout.VERTICAL
+        gravity = Gravity.CENTER_HORIZONTAL
         background = ColorDrawable(Color.TRANSPARENT)
         setBackgroundColor(Color.TRANSPARENT)
         clipChildren = false
         clipToPadding = false
         importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
     }
+
+    private val bubble: TextView = TextView(context).apply {
+        background = GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = 18f * density
+            setColor(0xF016353F.toInt())
+            setStroke((1.5f * density).toInt(), 0xFF7DFFC8.toInt())
+        }
+        setTextColor(0xFFE8F6F0.toInt())
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
+        setPadding(
+            (14 * density).toInt(),
+            (10 * density).toInt(),
+            (14 * density).toInt(),
+            (10 * density).toInt(),
+        )
+        maxWidth = (220 * density).toInt()
+        maxLines = 4
+        visibility = View.GONE
+        alpha = 0f
+        elevation = 0f
+        importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+    }
+
     private val image: ImageView = ImageView(context).apply {
         setImageResource(R.drawable.spideydashpip)
         adjustViewBounds = true
         scaleType = ImageView.ScaleType.FIT_CENTER
         setBackgroundColor(Color.TRANSPARENT)
         background = null
+        setPadding(0, 0, 0, 0)
         elevation = 0f
         outlineProvider = null
         clipToOutline = false
+        // Keep PNG alpha crisp on OEM overlays (no gray plate).
+        setLayerType(View.LAYER_TYPE_HARDWARE, null)
     }
     private var facingLeftFlag = false
     private var walkAnim: ObjectAnimator? = null
@@ -56,8 +98,22 @@ class DashOverlayHost(
     val layoutParams: WindowManager.LayoutParams
 
     init {
-        val size = (100 * density).toInt()
-        root.addView(image, FrameLayout.LayoutParams(size, size, Gravity.CENTER))
+        root.addView(
+            bubble,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                gravity = Gravity.CENTER_HORIZONTAL
+                bottomMargin = (6 * density).toInt()
+            },
+        )
+        root.addView(
+            image,
+            LinearLayout.LayoutParams(characterSize, characterSize).apply {
+                gravity = Gravity.CENTER_HORIZONTAL
+            },
+        )
         layoutParams = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
@@ -83,12 +139,25 @@ class DashOverlayHost(
                     touchStartX = event.rawX
                     touchStartY = event.rawY
                     dragging = false
+                    longPressFired = false
+                    longPressRunnable?.let { mainHandler.removeCallbacks(it) }
+                    val lp = Runnable {
+                        if (!dragging) {
+                            longPressFired = true
+                            onLongPress()
+                        }
+                    }
+                    longPressRunnable = lp
+                    mainHandler.postDelayed(lp, 480)
                     true
                 }
                 MotionEvent.ACTION_MOVE -> {
                     val dx = event.rawX - touchStartX
                     val dy = event.rawY - touchStartY
-                    if (!dragging && (abs(dx) > 10f || abs(dy) > 10f)) dragging = true
+                    if (!dragging && (abs(dx) > 10f || abs(dy) > 10f)) {
+                        dragging = true
+                        longPressRunnable?.let { mainHandler.removeCallbacks(it) }
+                    }
                     if (dragging) {
                         onDrag(dx, dy)
                         touchStartX = event.rawX
@@ -97,8 +166,11 @@ class DashOverlayHost(
                     true
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    if (!dragging) onTap()
+                    longPressRunnable?.let { mainHandler.removeCallbacks(it) }
+                    longPressRunnable = null
+                    if (!dragging && !longPressFired) onTap()
                     dragging = false
+                    longPressFired = false
                     true
                 }
                 else -> false
@@ -112,9 +184,65 @@ class DashOverlayHost(
     }
 
     fun detach() {
+        hideBubbleRunnable?.let { mainHandler.removeCallbacks(it) }
+        hideBubbleRunnable = null
         walkAnim?.cancel()
         bobAnim?.cancel()
         runCatching { windowManager.removeView(root) }
+    }
+
+    /** Popup speech above SpideyDashPip (and keep character position stable). */
+    fun showSpeech(line: String, holdMs: Long = 5_200) {
+        val text = line.trim()
+        if (text.isEmpty()) return
+        hideBubbleRunnable?.let { mainHandler.removeCallbacks(it) }
+        bubble.text = text
+        bubble.visibility = View.VISIBLE
+        bubble.alpha = 0f
+        bubble.scaleX = 0.86f
+        bubble.scaleY = 0.86f
+        bubble.measure(
+            View.MeasureSpec.makeMeasureSpec((220 * density).toInt(), View.MeasureSpec.AT_MOST),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+        )
+        val lift = bubble.measuredHeight + (6 * density).toInt()
+        if (bubbleLiftPx == 0) {
+            bubbleLiftPx = lift
+            layoutParams.y = (layoutParams.y - lift).coerceAtLeast(0)
+            runCatching { windowManager.updateViewLayout(root, layoutParams) }
+        }
+        bubble.animate().cancel()
+        bubble.animate()
+            .alpha(1f)
+            .scaleX(1f)
+            .scaleY(1f)
+            .setDuration(220)
+            .setInterpolator(OvershootInterpolator(1.4f))
+            .start()
+        val hide = Runnable { hideSpeech() }
+        hideBubbleRunnable = hide
+        mainHandler.postDelayed(hide, holdMs)
+    }
+
+    fun hideSpeech() {
+        hideBubbleRunnable?.let { mainHandler.removeCallbacks(it) }
+        hideBubbleRunnable = null
+        if (bubble.visibility != View.VISIBLE && bubbleLiftPx == 0) return
+        bubble.animate().cancel()
+        bubble.animate()
+            .alpha(0f)
+            .scaleX(0.9f)
+            .scaleY(0.9f)
+            .setDuration(160)
+            .withEndAction {
+                bubble.visibility = View.GONE
+                if (bubbleLiftPx != 0) {
+                    layoutParams.y += bubbleLiftPx
+                    bubbleLiftPx = 0
+                    runCatching { windowManager.updateViewLayout(root, layoutParams) }
+                }
+            }
+            .start()
     }
 
     fun moveBy(dx: Float, dy: Float) {
@@ -169,6 +297,34 @@ class DashOverlayHost(
                     .setDuration(120)
                     .withEndAction {
                         image.animate().scaleX(1f * face).scaleY(1f).setDuration(100).start()
+                    }
+                    .start()
+            }
+            .start()
+    }
+
+    /** Bigger bounce when you say Spidy / hey Spidy. */
+    fun reactSpidySense() {
+        val face = if (facingLeftFlag) -1f else 1f
+        image.animate().cancel()
+        image.animate()
+            .scaleX(0.72f * face)
+            .scaleY(0.72f)
+            .rotation(-12f)
+            .setDuration(90)
+            .withEndAction {
+                image.animate()
+                    .scaleX(1.22f * face)
+                    .scaleY(1.22f)
+                    .rotation(10f)
+                    .setDuration(140)
+                    .withEndAction {
+                        image.animate()
+                            .scaleX(1f * face)
+                            .scaleY(1f)
+                            .rotation(0f)
+                            .setDuration(160)
+                            .start()
                     }
                     .start()
             }

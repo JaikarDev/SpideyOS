@@ -39,10 +39,13 @@ import com.jaikar.spideyos.SpideyApp
 import com.jaikar.spideyos.assistant.SpideyOverlayService
 import com.jaikar.spideyos.data.SpideySettings
 import com.jaikar.spideyos.ui.adaptive.AdaptiveContent
+import com.jaikar.spideyos.ui.theme.Fraunces
+import com.jaikar.spideyos.ui.theme.Outfit
 import com.jaikar.spideyos.ui.theme.PipPuppet
-import com.jaikar.spideyos.ui.theme.SpideyGold
-import com.jaikar.spideyos.ui.theme.SpideyWeb
-import com.jaikar.spideyos.ui.theme.WebBackground
+import com.jaikar.spideyos.ui.theme.VaAtmosphere
+import com.jaikar.spideyos.ui.theme.VaInk
+import com.jaikar.spideyos.ui.theme.VaMintDeep
+import com.jaikar.spideyos.ui.theme.VaMuted
 import kotlinx.coroutines.launch
 
 @Composable
@@ -59,7 +62,7 @@ fun OnboardingScreen(
     ) { }
 
     Box(Modifier.fillMaxSize()) {
-        WebBackground(intensity = settings.themeIntensity)
+        VaAtmosphere()
         AdaptiveContent {
             Column(
                 Modifier
@@ -68,14 +71,21 @@ fun OnboardingScreen(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(AppCredits.APP_NAME, fontSize = 40.sp, fontWeight = FontWeight.Bold, color = SpideyWeb)
-                Text(AppCredits.TAGLINE, color = SpideyGold, fontSize = 14.sp)
+                Text(
+                    AppCredits.APP_NAME,
+                    fontSize = 40.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = VaInk,
+                    fontFamily = Fraunces,
+                )
+                Text(AppCredits.TAGLINE, color = VaMuted, fontSize = 14.sp, fontFamily = Outfit)
                 Spacer(Modifier.height(8.dp))
-                Text(AppCredits.CREDIT_LINE, color = SpideyGold, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Text(AppCredits.CREDIT_LINE, color = VaMintDeep, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, fontFamily = Outfit)
                 Text(
                     "Original mascot Pip — not affiliated with any movie brand.",
-                    color = SpideyWeb.copy(alpha = 0.7f),
+                    color = VaMuted,
                     fontSize = 12.sp,
+                    fontFamily = Outfit,
                 )
                 Spacer(Modifier.height(16.dp))
                 PipPuppet(

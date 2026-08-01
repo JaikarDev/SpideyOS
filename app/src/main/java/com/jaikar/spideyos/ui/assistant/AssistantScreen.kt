@@ -35,6 +35,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -45,12 +46,16 @@ import com.jaikar.spideyos.assistant.GeminiBridge
 import com.jaikar.spideyos.assistant.PupBrain
 import com.jaikar.spideyos.data.SpideySettings
 import com.jaikar.spideyos.ui.adaptive.AdaptiveContent
+import com.jaikar.spideyos.ui.theme.Fraunces
+import com.jaikar.spideyos.ui.theme.Outfit
 import com.jaikar.spideyos.ui.theme.PipPuppet
-import com.jaikar.spideyos.ui.theme.SpideyGold
-import com.jaikar.spideyos.ui.theme.SpideyNavy
-import com.jaikar.spideyos.ui.theme.SpideyRed
-import com.jaikar.spideyos.ui.theme.SpideyWeb
-import com.jaikar.spideyos.ui.theme.WebBackground
+import com.jaikar.spideyos.ui.theme.VaAtmosphere
+import com.jaikar.spideyos.ui.theme.VaCloud
+import com.jaikar.spideyos.ui.theme.VaInk
+import com.jaikar.spideyos.ui.theme.VaMint
+import com.jaikar.spideyos.ui.theme.VaMintDeep
+import com.jaikar.spideyos.ui.theme.VaMuted
+import com.jaikar.spideyos.ui.theme.VaSoft
 import kotlinx.coroutines.launch
 
 data class ChatLine(
@@ -98,32 +103,34 @@ fun AssistantScreen(
     }
 
     Box(Modifier.fillMaxSize()) {
-        WebBackground(intensity = settings.themeIntensity)
+        VaAtmosphere()
         AdaptiveContent {
             Column(Modifier.fillMaxSize()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = SpideyWeb)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = VaInk)
                     }
                     Column(Modifier.weight(1f)) {
                         Text(
-                            "${AppCredits.MASCOT_NAME} Companion",
-                            color = SpideyWeb,
+                            "Spidy",
+                            color = VaInk,
+                            fontFamily = Fraunces,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp,
+                            fontSize = 24.sp,
                         )
                         Text(
                             if (settings.geminiApiKey.isNotBlank()) {
-                                "Gemini + local background actions · by ${AppCredits.DEVELOPER_NAME}"
+                                "Gemini + local actions · ${AppCredits.DEVELOPER_NAME}"
                             } else {
-                                "Local pup · optional Gemini · by ${AppCredits.DEVELOPER_NAME}"
+                                "On-device companion · ${AppCredits.DEVELOPER_NAME}"
                             },
-                            color = SpideyGold,
+                            color = VaMuted,
+                            fontFamily = Outfit,
                             fontSize = 12.sp,
                         )
                     }
                     if (busy) {
-                        CircularProgressIndicator(modifier = Modifier.padding(8.dp), color = SpideyGold, strokeWidth = 2.dp)
+                        CircularProgressIndicator(modifier = Modifier.padding(8.dp), color = VaMint, strokeWidth = 2.dp)
                     }
                 }
 
@@ -141,13 +148,13 @@ fun AssistantScreen(
                     Column(
                         Modifier
                             .fillMaxWidth()
-                            .background(SpideyNavy.copy(alpha = 0.9f), RoundedCornerShape(12.dp))
-                            .padding(10.dp),
+                            .background(VaSoft, RoundedCornerShape(18.dp))
+                            .padding(12.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
-                        Text("Background", color = SpideyGold, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                        Text("Background", color = VaMintDeep, fontFamily = Outfit, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                         liveStatus.takeLast(4).forEach { s ->
-                            Text("• $s", color = SpideyWeb, fontSize = 12.sp)
+                            Text("• $s", color = VaInk, fontFamily = Outfit, fontSize = 12.sp)
                         }
                     }
                 }
@@ -160,7 +167,8 @@ fun AssistantScreen(
                     contentPadding = PaddingValues(vertical = 8.dp),
                 ) {
                     items(lines) { line ->
-                        val bg = if (line.fromUser) SpideyRed.copy(alpha = 0.88f) else SpideyNavy.copy(alpha = 0.92f)
+                        val bg = if (line.fromUser) VaMint else VaCloud
+                        val fg = if (line.fromUser) Color.White else VaInk
                         Column(
                             Modifier
                                 .fillMaxWidth()
@@ -168,13 +176,13 @@ fun AssistantScreen(
                                     start = if (line.fromUser) 40.dp else 0.dp,
                                     end = if (line.fromUser) 0.dp else 40.dp,
                                 )
-                                .background(bg, RoundedCornerShape(18.dp))
-                                .padding(12.dp),
+                                .background(bg, RoundedCornerShape(22.dp))
+                                .padding(14.dp),
                         ) {
-                            Text(line.text, color = SpideyWeb, fontSize = 14.sp)
+                            Text(line.text, color = fg, fontFamily = Outfit, fontSize = 14.sp)
                             line.meta?.let {
                                 Spacer(Modifier.height(4.dp))
-                                Text(it, color = SpideyGold.copy(alpha = 0.8f), fontSize = 10.sp)
+                                Text(it, color = if (line.fromUser) Color.White.copy(alpha = 0.75f) else VaMuted, fontSize = 10.sp)
                             }
                         }
                     }
@@ -185,7 +193,7 @@ fun AssistantScreen(
                         value = input,
                         onValueChange = { input = it },
                         modifier = Modifier.weight(1f),
-                        placeholder = { Text("Talk to Pip… (mail, messages, camera)") },
+                        placeholder = { Text("Ask Spidy…") },
                         enabled = !busy,
                         singleLine = true,
                     )
@@ -225,7 +233,7 @@ fun AssistantScreen(
                             }
                         },
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send", tint = SpideyGold)
+                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = "Send", tint = VaMint)
                     }
                 }
             }
